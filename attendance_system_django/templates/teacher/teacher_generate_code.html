@@ -1,0 +1,178 @@
+{% extends 'teacher/teacher_base.html' %}
+
+{% block title %}Generate Code{% endblock %}
+
+{% block teacher_content %}
+<div class="flex flex-col items-center justify-center space-y-8">
+  <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-xl">
+    <div class="p-6 text-center">
+      <i data-lucide="qr-code" class="mx-auto h-16 w-16 text-primary mb-4"></i>
+      <h2 class="text-3xl font-headline font-semibold">Gerar código</h2>
+      <p class="text-muted-foreground mt-2">
+        Generate a unique code for your students to join the session.
+      </p>
+    </div>
+    <div class="p-6 pt-0 space-y-6">
+      <div id="code-details" class="text-center p-6 bg-secondary rounded-lg space-y-3">
+        <p class="text-sm text-muted-foreground mb-1">Current Class Code:</p>
+        <div class="flex items-center justify-center gap-2">
+          <p id="current-code-display" class="text-5xl font-bold font-mono text-primary tracking-widest">
+            </p>
+          <button type="button" id="copy-code-btn" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 w-9 p-0 bg-transparent text-foreground hover:bg-muted" aria-label="Copy code">
+            <i data-lucide="copy" class="h-5 w-5"></i>
+          </button>
+        </div>
+        <div id="code-status-badge">
+            </div>
+      </div>
+      <button type="button" id="generate-new-code-btn" class="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 py-3 bg-primary hover:bg-primary/90 text-lg text-primary-foreground">
+        <i data-lucide="qr-code" class="mr-2 h-5 w-5"></i>
+        Generate New Code
+      </button>
+      <a href="{% url 'teacher_dashboard' %}" class="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 py-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground text-lg text-foreground">
+        Go to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock teacher_content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const initialCodeDetails = JSON.parse('{{ initial_code_details|safe }}');
+        let classCodeDetails = initialCodeDetails; // Local state
+        let remainingTimeInterval;
+
+        const currentCodeDisplay = document.getElementById('current-code-display');
+        const codeStatusBadge = document.getElementById('code-status-badge');
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        const generateNewCodeBtn = document.getElementById('generate-new-code-btn');
+
+        function updateCodeUI() {
+            if (classCodeDetails && classCodeDetails.code_status !== 'inactive') {
+                currentCodeDisplay.textContent = classCodeDetails.code;
+                generateNewCodeBtn.textContent = 'Generate New Code';
+                copyCodeBtn.disabled = false;
+                startRemainingTimeTimer();
+            } else {
+                currentCodeDisplay.textContent = 'No Code';
+                generateNewCodeBtn.textContent = 'Generate Code';
+                copyCodeBtn.disabled = true;
+                codeStatusBadge.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">No Active Code</span>`;
+                clearInterval(remainingTimeInterval);
+            }
+            lucide.createIcons(); // Re-render icons if new ones were added
+        }
+
+        function startRemainingTimeTimer() {
+            clearInterval(remainingTimeInterval); // Clear any existing timer
+            if (classCodeDetails && classCodeDetails.expires_at) {
+                remainingTimeInterval = setInterval(() => {
+                    const expiryTime = new Date(classCodeDetails.expires_at);
+                    const now = new Date();
+                    const diffSeconds = Math.max(0, Math.floor((expiryTime.getTime() - now.getTime()) / 1000));
+
+                    const minutes = Math.floor(diffSeconds / 60);
+                    const seconds = diffSeconds % 60;
+
+                    const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                    if (diffSeconds > 0) {
+                        codeStatusBadge.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+                                <i data-lucide="clock" class="mr-2 h-4 w-4"></i> Active for: ${timeDisplay}
+                            </span>
+                        `;
+                    } else {
+                        classCodeDetails.code_status = 'expired';
+                        codeStatusBadge.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
+                                <i data-lucide="clock" class="mr-2 h-4 w-4"></i> Code Expired
+                            </span>
+                        `;
+                        clearInterval(remainingTimeInterval);
+                    }
+                    lucide.createIcons();
+                }, 1000);
+            }
+        }
+
+        // Initial UI update on page load
+        updateCodeUI();
+
+        generateNewCodeBtn.addEventListener('click', async () => {
+            showToast({title: "Generating code...", description: "Please wait.", variant: "info", duration: 2000});
+            try {
+                const response = await fetch('{% url "generate_attendance_code" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=generate' // Dummy body, actual data might be sent if choosing specific class
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    classCodeDetails = {
+                        code: data.code,
+                        class_session_id: data.class_session_id,
+                        expires_at: data.expires_at,
+                        code_status: 'active'
+                    };
+                    updateCodeUI();
+                    showToast({title: "Code Generated!", description: `New code: ${data.code}`, variant: "success"});
+                } else {
+                    showToast({title: "Error", description: data.message, variant: "destructive"});
+                }
+            } catch (error) {
+                console.error('Error generating code:', error);
+                showToast({title: "Error", description: "Failed to generate code. Please try again.", variant: "destructive"});
+            }
+        });
+
+        copyCodeBtn.addEventListener('click', () => {
+            if (classCodeDetails?.code) {
+                navigator.clipboard.writeText(classCodeDetails.code)
+                    .then(() => {
+                        showToast({title: "Code Copied!", description: "Class code copied to clipboard.", variant: "success"});
+                        // Temporarily change icon to checkmark if needed
+                        const copyIcon = copyCodeBtn.querySelector('[data-lucide="copy"]');
+                        if (copyIcon) {
+                            copyIcon.style.display = 'none';
+                            const checkIcon = document.createElement('i');
+                            checkIcon.setAttribute('data-lucide', 'check');
+                            checkIcon.classList.add('h-5', 'w-5', 'text-green-500');
+                            copyCodeBtn.appendChild(checkIcon);
+                            lucide.createIcons(); // Re-render icon
+                            setTimeout(() => {
+                                copyIcon.style.display = 'block';
+                                checkIcon.remove();
+                            }, 2000);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                        showToast({title: "Copy Failed", description: "Could not copy code to clipboard.", variant: "destructive"});
+                    });
+            }
+        });
+
+        // Function to be called from base.html's WebSocket logic
+        window.updateGenerateCodePage = function(context) {
+            // This assumes the context contains a new code generated for *this* teacher
+            // This is a simplified version; in a real app, you might want to confirm
+            // if this notification is for the currently displayed class session.
+            if (context.code && context.expires_at && context.code_status) {
+                classCodeDetails = {
+                    code: context.code,
+                    class_session_id: context.class_session_id,
+                    expires_at: context.expires_at,
+                    code_status: context.code_status
+                };
+                updateCodeUI();
+            }
+        };
+    });
+</script>
+{% endblock extra_js %}

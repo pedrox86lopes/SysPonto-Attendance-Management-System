@@ -1,0 +1,125 @@
+{% extends 'student/student_base.html' %}
+
+{% block title %}Enter Code{% endblock %}
+
+{% block student_content %}
+<div class="flex flex-col items-center justify-center space-y-8">
+  <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-xl">
+    <div class="p-6 text-center">
+      <i data-lucide="log-in" class="mx-auto h-16 w-16 text-primary mb-4"></i>
+      <h2 class="text-3xl font-headline font-semibold">Enter Attendance Code</h2>
+      <p class="text-muted-foreground mt-2">
+        Please enter the 6-character code provided by your teacher.
+      </p>
+    </div>
+    <div class="p-6 pt-0 space-y-6">
+      <form id="attendance-submission-form" class="space-y-4">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="attendance_code" class="block text-sm font-medium text-muted-foreground mb-1">Attendance Code</label>
+          <input type="text" id="attendance_code" name="attendance_code" maxlength="6" minlength="6" required
+                 class="block w-full px-4 py-3 border border-input rounded-md text-center text-xl font-bold tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                 placeholder="XXXXXX">
+        </div>
+        <input type="hidden" id="simulated_latitude" name="simulated_latitude">
+        <input type="hidden" id="simulated_longitude" name="simulated_longitude">
+        <input type="hidden" id="simulated_ip" name="simulated_ip">
+
+        <button type="submit" class="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 py-3 bg-primary hover:bg-primary/90 text-lg text-primary-foreground">
+          Submit Code
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock student_content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('attendance-submission-form');
+        const codeInput = document.getElementById('attendance_code');
+        const latInput = document.getElementById('simulated_latitude');
+        const lonInput = document.getElementById('simulated_longitude');
+        const ipInput = document.getElementById('simulated_ip');
+
+        // Simulate IP address (can be more sophisticated)
+        function generateRandomIp() {
+            return Array(4).fill(0).map(() => Math.floor(Math.random() * 255) + 1).join('.');
+        }
+
+        // Get actual geolocation or simulate if permission denied
+        function getGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        latInput.value = position.coords.latitude;
+                        lonInput.value = position.coords.longitude;
+                        showToast({title: "Geolocation Acquired", description: "Your location will be sent for attendance.", variant: "success"});
+                    },
+                    (error) => {
+                        console.warn('Geolocation error:', error.message);
+                        // Fallback to a fixed/simulated location if real geo is denied/fails
+                        const simulatedLat = 41.5369 + (Math.random() - 0.5) * 0.1; // Random close to Braga
+                        const simulatedLon = -8.4239 + (Math.random() - 0.5) * 0.1;
+                        latInput.value = simulatedLat.toFixed(4);
+                        lonInput.value = simulatedLon.toFixed(4);
+                        showToast({title: "Geolocation Failed", description: "Using simulated location (might affect AI validation).", variant: "destructive"});
+                    }
+                );
+            } else {
+                console.warn('Geolocation is not supported by this browser.');
+                // Fallback to a fixed/simulated location if not supported
+                const simulatedLat = 41.5369 + (Math.random() - 0.5) * 0.1;
+                const simulatedLon = -8.4239 + (Math.random() - 0.5) * 0.1;
+                latInput.value = simulatedLat.toFixed(4);
+                lonInput.value = simulatedLon.toFixed(4);
+                showToast({title: "Geolocation Not Supported", description: "Using simulated location (might affect AI validation).", variant: "destructive"});
+            }
+        }
+
+        // Initialize on page load
+        ipInput.value = generateRandomIp();
+        getGeolocation();
+
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            showToast({title: "Submitting...", description: "Sending your attendance code.", variant: "info", duration: 2000});
+
+            try {
+                const response = await fetch('{% url "submit_attendance_code" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                });
+                const data = await response.json();
+
+                if (data.status === 'success' || data.status === 'info') {
+                    showToast({title: "Success!", description: data.message, variant: "success"});
+                    codeInput.value = ''; // Clear input on success
+                } else {
+                    showToast({title: "Error!", description: data.message, variant: "destructive"});
+                }
+            } catch (error) {
+                console.error('Error submitting attendance:', error);
+                showToast({title: "Network Error", description: "Could not connect to the server.", variant: "destructive"});
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Code';
+            }
+        });
+
+        // Global function for WebSocket updates (from base.html)
+        window.updateStudentDashboardOnValidation = function(context) {
+            showToast({title: "Attendance Update!", description: `Your attendance for ${context.class_name} has been validated!`, variant: "success"});
+            // Optionally, update UI on the student's calendar or a dedicated attendance history page
+        };
+    });
+</script>
+{% endblock extra_js %}

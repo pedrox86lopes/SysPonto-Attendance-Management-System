@@ -1,0 +1,19 @@
+<header class="bg-primary text-primary-foreground shadow-md">
+  <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="{% url 'home' %}" class="flex items-center gap-2">
+      <i data-lucide="clipboard-check" class="h-8 w-8"></i>
+      <h1 class="text-2xl font-headline font-semibold">SysPonto - Formando</h1>
+    </a>
+     <nav class="flex items-center gap-2">
+       <a href="{% url 'student_enter_code' %}" class="flex items-center gap-1 text-primary-foreground hover:bg-primary/80 px-4 py-2 rounded-md transition-colors duration-200">
+          <i data-lucide="log-in" class="h-5 w-5"></i> Digite o código
+        </a>
+      <a href="{% url 'student_calendar' %}" class="flex items-center gap-1 text-primary-foreground hover:bg-primary/80 px-4 py-2 rounded-md transition-colors duration-200">
+        <i data-lucide="calendar-days" class="h-5 w-5"></i> Calendário
+      </a>
+       <a href="{% url 'home' %}" class="flex items-center gap-1 text-primary-foreground hover:bg-primary/80 px-4 py-2 rounded-md transition-colors duration-200">
+          Home
+        </a>
+    </nav>
+  </div>
+</header>

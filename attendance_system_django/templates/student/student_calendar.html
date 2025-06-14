@@ -1,0 +1,54 @@
+{% extends 'student/student_base.html' %}
+
+{% block title %}Your Calendar{% endblock %}
+
+{% block extra_css %}
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+{% endblock %}
+
+{% block student_content %}
+<div class="space-y-8">
+  <div class="text-center">
+    <h1 class="text-4xl font-headline font-bold text-primary">Your Class Calendar</h1>
+    <p class="text-lg text-muted-foreground mt-2">Upcoming and past class sessions.</p>
+  </div>
+
+  <div class="bg-card text-card-foreground rounded-lg border shadow-xl p-6">
+    <div id="calendar" class="h-[600px]"></div>
+  </div>
+</div>
+{% endblock student_content %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const calendarEvents = JSON.parse('{{ calendar_events_json|safe }}');
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: calendarEvents,
+            eventClick: function(info) {
+                // Optional: Show more details about the event when clicked
+                showToast({
+                    title: info.event.title,
+                    description: `Start: ${info.event.start.toLocaleString()}<br>End: ${info.event.end ? info.event.end.toLocaleString() : 'N/A'}`,
+                    variant: 'info',
+                    duration: 5000
+                });
+            },
+            eventDidMount: function(info) {
+                // Apply Tailwind-like styling to events
+                info.el.classList.add('bg-primary', 'text-primary-foreground', 'rounded-md', 'p-1', 'text-sm');
+            }
+        });
+        calendar.render();
+    });
+</script>
+{% endblock extra_js %}

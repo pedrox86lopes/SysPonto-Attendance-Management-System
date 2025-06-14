@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to SysPonto{% endblock %}
+
+{% block header %}
+    {% include 'includes/_main_header.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  <main class="flex-grow container mx-auto px-4 py-12 flex flex-col items-center justify-center">
+    <div class="text-center mb-12">
+      <i data-lucide="clipboard-check" class="mx-auto h-20 w-20 text-primary mb-4"></i>
+      <h1 class="text-5xl font-headline font-bold text-primary mb-4">
+        SysPonto - CESAE Digital
+      </h1>
+      <p class="text-xl text-muted-foreground max-w-2xl mx-auto">
+        A solução de assiduidade perfeita para salas de aula modernas. Gere códigos, acompanhe a presença e garanta a integridade com validação alimentada por IA.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+      <div class="bg-card text-card-foreground rounded-lg border shadow-xl hover:shadow-2xl transition-shadow duration-300">
+        <div class="flex flex-col items-center p-6 text-center">
+          <i data-lucide="users" class="h-12 w-12 text-accent mb-3"></i>
+          <h2 class="text-3xl font-headline font-semibold">Dashboard do Formador</h2>
+          <p class="text-muted-foreground mt-2">Faça a gestão das suas aulas, gere códigos de presença e visualize os envios dos alunos.</p>
+        </div>
+        <div class="p-6 pt-0 text-center">
+          <a href="{% url 'teacher_portal' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+            Entrar no dashboard
+          </a>
+        </div>
+      </div>
+
+      <div class="bg-card text-card-foreground rounded-lg border shadow-xl hover:shadow-2xl transition-shadow duration-300">
+        <div class="flex flex-col items-center p-6 text-center">
+          <i data-lucide="log-in" class="h-12 w-12 text-accent mb-3"></i>
+          <h2 class="text-3xl font-headline font-semibold">Dashboard do Formando</h2>
+          <p class="text-muted-foreground mt-2">Entre na sua turma inserindo o código fornecido pelo seu professor.</p>
+        </div>
+        <div class="p-6 pt-0 text-center">
+          <a href="{% url 'student_portal' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+            Entrar no dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-16 text-center text-muted-foreground">
+      <p>&copy; 2024 SysPonto. All rights reserved.</p>
+      <p class="text-sm">Concebido para um controlo de presença eficiente e justo.</p>
+    </footer>
+  </main>
+</div>
+{% endblock content %}

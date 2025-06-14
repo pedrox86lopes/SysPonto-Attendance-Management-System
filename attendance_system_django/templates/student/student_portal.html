@@ -1,0 +1,40 @@
+{% extends 'student/student_base.html' %}
+
+{% block title %}Student Portal{% endblock %}
+
+{% block student_content %}
+<div class="space-y-8">
+  <div class="text-center">
+    <h1 class="text-4xl font-headline font-bold text-primary">Student Portal</h1>
+    <p class="text-lg text-muted-foreground mt-2">Manage your attendance records and class schedule.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+    <div class="bg-card text-card-foreground rounded-lg border shadow-lg hover:shadow-xl transition-shadow">
+      <div class="flex flex-col items-center p-6 text-center">
+        <i data-lucide="log-in" class="h-12 w-12 text-accent mb-2"></i>
+        <h2 class="text-2xl font-headline font-semibold">Enter Class Code</h2>
+        <p class="text-muted-foreground mt-2">Submit the code provided by your teacher to mark your presence.</p>
+      </div>
+      <div class="p-6 pt-0 text-center">
+        <a href="{% url 'student_enter_code' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground w-full">
+          Enter Code
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-card text-card-foreground rounded-lg border shadow-lg hover:shadow-xl transition-shadow">
+      <div class="flex flex-col items-center p-6 text-center">
+        <i data-lucide="calendar-days" class="h-12 w-12 text-accent mb-2"></i>
+        <h2 class="text-2xl font-headline font-semibold">Your Class Calendar</h2>
+        <p class="text-muted-foreground mt-2">View your enrolled classes and upcoming sessions.</p>
+      </div>
+      <div class="p-6 pt-0 text-center">
+        <a href="{% url 'student_calendar' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground w-full">
+          View Calendar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock student_content %}

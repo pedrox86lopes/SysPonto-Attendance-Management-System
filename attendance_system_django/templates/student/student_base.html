@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    {% include 'includes/_student_header.html' %}
+{% endblock %}
+
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        {% block student_content %}{% endblock %}
+    </div>
+{% endblock %}
