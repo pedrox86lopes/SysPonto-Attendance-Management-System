@@ -1,40 +1,141 @@
-{% extends 'student/student_base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Student Portal{% endblock %}
+{% block title %}Student Dashboard{% endblock %}
 
-{% block student_content %}
-<div class="space-y-8">
-  <div class="text-center">
-    <h1 class="text-4xl font-headline font-bold text-primary">Student Portal</h1>
-    <p class="text-lg text-muted-foreground mt-2">Manage your attendance records and class schedule.</p>
-  </div>
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto"> {# Changed to col-lg-10 mx-auto for wider content #}
+            <h1 class="mb-4 text-center text-primary">Welcome, {{ user.username }}!</h1>
+            <p class="text-center text-muted">Your personalized hub for classes and attendance.</p>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-    <div class="bg-card text-card-foreground rounded-lg border shadow-lg hover:shadow-xl transition-shadow">
-      <div class="flex flex-col items-center p-6 text-center">
-        <i data-lucide="log-in" class="h-12 w-12 text-accent mb-2"></i>
-        <h2 class="text-2xl font-headline font-semibold">Enter Class Code</h2>
-        <p class="text-muted-foreground mt-2">Submit the code provided by your teacher to mark your presence.</p>
-      </div>
-      <div class="p-6 pt-0 text-center">
-        <a href="{% url 'student_enter_code' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground w-full">
-          Enter Code
-        </a>
-      </div>
+            {# Alerts for quick actions/status #}
+            {% if today_sessions %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                You have **{{ today_sessions|length }} class{{ today_sessions|length|pluralize }}** today! <a href="{% url 'student_enter_code' %}" class="alert-link">Enter an attendance code</a>.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% elif next_upcoming_session %}
+            <div class="alert alert-secondary alert-dismissible fade show" role="alert">
+                Your next class is **{{ next_upcoming_session.course.name }}** on **{{ next_upcoming_session.date|date:"F jS" }}** at **{{ next_upcoming_session.start_time|time:"H:i" }}**.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% else %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                No upcoming classes found. Please check your enrollments or contact administration.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+
+
+            <div class="row mt-4">
+                {# Enrolled Courses Card #}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Your Enrolled Courses</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if enrolled_courses %}
+                            <ul class="list-group list-group-flush">
+                                {% for course in enrolled_courses %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ course.name }}</strong>
+                                        <small class="text-muted"> ({{ course.code }})</small><br>
+                                        <small class="text-muted">Taught by:
+                                            {% for teacher in course.teachers.all %}
+                                                {{ teacher.username }}{% if not forloop.last %}, {% endif %}
+                                            {% empty %}
+                                                N/A
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-secondary rounded-pill">{{ course.classsession_set.count }} Classes</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="card-text text-muted">You are not currently enrolled in any courses. Please contact administration.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Today's Classes Card #}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Today's Classes</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if today_sessions %}
+                            <ul class="list-group list-group-flush">
+                                {% for session in today_sessions %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ session.course.name }}</strong>
+                                        <small class="text-muted"> ({{ session.course.code }})</small><br>
+                                        <span class="text-secondary">{{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}</span>
+                                    </div>
+                                    <a href="{% url 'student_enter_code' %}" class="btn btn-sm btn-outline-success">Enter Code</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="card-text text-muted">You have no classes scheduled for today that haven't started yet. Enjoy your day!</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                {# Next Upcoming Class Card #}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Next Upcoming Class</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if next_upcoming_session %}
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>{{ next_upcoming_session.course.name }}</strong>
+                                    <small class="text-muted"> ({{ next_upcoming_session.course.code }})</small><br>
+                                    <p class="mb-1 text-muted">{{ next_upcoming_session.date|date:"l, F jS, Y" }}</p>
+                                    <p class="mb-0 text-secondary">{{ next_upcoming_session.start_time|time:"H:i" }} - {{ next_upcoming_session.end_time|time:"H:i" }}</p>
+                                </li>
+                            </ul>
+                            {% else %}
+                            <p class="card-text text-muted">No upcoming classes found beyond today.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Full Schedule / Actions Card #}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Quick Actions</h5>
+                        </div>
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <p class="card-text">View all your classes on a comprehensive calendar.</p>
+                            <a href="{% url 'student_calendar' %}" class="btn btn-primary btn-lg mb-3">
+                                <i class="fas fa-calendar-alt me-2"></i> Go to Full Calendar
+                            </a>
+                            <p class="card-text">Submit an attendance code for your current class.</p>
+                            <a href="{% url 'student_enter_code' %}" class="btn btn-outline-dark btn-lg">
+                                <i class="fas fa-qrcode me-2"></i> Enter Attendance Code
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
-
-    <div class="bg-card text-card-foreground rounded-lg border shadow-lg hover:shadow-xl transition-shadow">
-      <div class="flex flex-col items-center p-6 text-center">
-        <i data-lucide="calendar-days" class="h-12 w-12 text-accent mb-2"></i>
-        <h2 class="text-2xl font-headline font-semibold">Your Class Calendar</h2>
-        <p class="text-muted-foreground mt-2">View your enrolled classes and upcoming sessions.</p>
-      </div>
-      <div class="p-6 pt-0 text-center">
-        <a href="{% url 'student_calendar' %}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground w-full">
-          View Calendar
-        </a>
-      </div>
-    </div>
-  </div>
 </div>
-{% endblock student_content %}
+{% endblock %}
