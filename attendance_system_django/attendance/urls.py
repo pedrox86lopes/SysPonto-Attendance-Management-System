@@ -9,6 +9,7 @@ urlpatterns = [
 	path('teacher/', views.teacher_portal, name='teacher_portal'),
 	path('teacher/generate-code/', views.teacher_generate_code, name='teacher_generate_code'),
 	path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('teacher/dashboard/', views.teacher_generate_code_page, name='teacher_dashboard'),
 
 
 	# API Endpoints (consistent 'api/' prefix for all)
@@ -16,6 +17,8 @@ urlpatterns = [
 	path('api/run-ai-validation/', views.run_ai_validation, name='run_ai_validation'),
 	path('api/validate-attendance/', views.validate_attendance, name='validate_attendance'),
 	path('api/get-session-submissions/', views.get_session_submissions, name='get_session_submissions'),
+    # URL for the AJAX POST request to generate code
+    path('api/generate-code/', views.generate_code_api_view, name='generate_code_api_view'),
 
 	# Student Views
 	path('student/', views.student_portal, name='student_portal'),

@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.db.models import Q 
 from django.utils.timezone import localdate
 import logging
+import string
 
 
 
@@ -119,7 +120,139 @@ def teacher_generate_code(request):
     return render(request, 'teacher/teacher_generate_code.html', {
         'initial_code_details': json.dumps(current_code_details)
     })
+    
+    
+@login_required(login_url='/login/')
+@user_passes_test(is_teacher, login_url='/login/')
+def teacher_generate_code_page(request): # Renamed for clarity, original name can stay if preferred
+    """
+    Renders the page for teachers to generate attendance codes.
+    It pre-loads any currently active or recently expired code for the teacher's
+    classes today.
+    """
+    today = timezone.localdate() # Use Django's timezone-aware localdate
+    current_code_details = {'code_status': 'inactive', 'code': None, 'class_session_id': None, 'expires_at': None}
 
+    # Ensure request.user is linked to a Teacher profile if your is_teacher decorator expects it
+    # For example, if User has a OneToOneField to Teacher:
+    # teacher_profile = request.user.teacher_profile # adjust as per your model setup
+
+    class_sessions_today = ClassSession.objects.filter(
+        course__teachers=request.user, # Assuming 'teachers' is a ManyToMany or ForeignKey on Course
+        date=today
+    ).order_by('start_time').select_related('course')
+
+    active_class_session_for_display = None # To set the initial selected option in dropdown
+
+    # Try to find an active code for today's sessions first
+    for session in class_sessions_today:
+        try:
+            # Check if there's an active code for this specific session
+            code_obj = AttendanceCode.objects.get(class_session=session)
+            if code_obj.is_valid(): # Assumes you have an is_valid method on AttendanceCode
+                current_code_details = {
+                    'code': code_obj.code,
+                    'class_session_id': str(session.id),
+                    'expires_at': code_obj.expires_at.isoformat(),
+                    'code_status': 'active'
+                }
+                active_class_session_for_display = session
+                break # Found an active code, no need to check others
+        except AttendanceCode.DoesNotExist:
+            pass # No code for this specific session
+
+    # If no active code was found, but there are sessions, default to the first session
+    if not active_class_session_for_display and class_sessions_today.exists():
+        active_class_session_for_display = class_sessions_today.first()
+        current_code_details['class_session_id'] = str(active_class_session_for_display.id)
+        # Note: current_code_details will still have code and expires_at as None unless set by an existing code
+
+    # (You might need to fetch initial student submissions for the active session here as well)
+    initial_student_submissions = [] # Populate this based on active_class_session_for_display if needed
+
+    context = {
+        'teacher_class_sessions_today': class_sessions_today,
+        'initial_code_details': json.dumps(current_code_details),
+        'active_class_session_for_display': active_class_session_for_display,
+        'active_class_session_id': str(active_class_session_for_display.id) if active_class_session_for_display else '',
+        'initial_student_submissions_parsed': initial_student_submissions, # Ensure this is properly formatted for JS
+        # Add other dashboard metrics here as needed (total students, total courses, etc.)
+        'total_students_enrolled': 0, # Placeholder
+        'total_courses_taught': 0,    # Placeholder
+        'current_day_sessions': class_sessions_today.count(), # Count of today's sessions
+        'pending_validations': 0,     # Placeholder
+        'total_present_attendance': 0, # Placeholder for chart
+        'total_pending_attendance': 0, # Placeholder for chart
+        'course_names_for_chart': json.dumps([]), # Placeholder for chart
+        'submissions_per_course_for_chart': json.dumps([]), # Placeholder for chart
+    }
+
+    return render(request, 'teacher_dashboard.html', context)
+
+
+# --- NEW VIEW FOR AJAX POST REQUEST ---
+@login_required
+@user_passes_test(is_teacher) # Ensure only teachers can access this
+@require_POST # This decorator ensures it only accepts POST requests
+def generate_code_api_view(request):
+    """
+    Handles the POST request to generate an attendance code.
+    Returns JSON response.
+    """
+    class_session_id = request.POST.get('class_session_id')
+
+    if not class_session_id:
+        return JsonResponse({'status': 'error', 'message': 'ID da sessão de turma não fornecido.'}, status=400)
+
+    try:
+        # Get the class session, ensuring it belongs to the logged-in teacher
+        class_session = get_object_or_404(ClassSession, id=class_session_id, course__teachers=request.user)
+    except Exception: # Catch any exception, including DoesNotExist or permissions
+        return JsonResponse({'status': 'error', 'message': 'Sessão de turma não encontrada ou não pertence ao professor.'}, status=404)
+
+    # --- Code Generation Logic ---
+    characters = string.ascii_uppercase + string.digits
+    new_code = ''.join(random.choices(characters, k=6)) # Generates a 6-character code
+
+    # Define code expiration (e.g., 10 minutes from now)
+    expires_at = timezone.now() + timedelta(minutes=10)
+
+    try:
+        # Although update_or_create will handle the uniqueness,
+        # expiring previous codes *explicitly* can be good practice
+        # if you want to ensure any old code for this session is
+        # marked as no longer valid in its 'expires_at' or 'is_active' state
+        # before potentially being overridden.
+        # However, update_or_create itself will overwrite the 'code' and 'expires_at'
+        # of the *single* existing object, making this filter/update redundant for the
+        # unique constraint itself. You can keep it if you want the 'expires_at'
+        # of *all* previous records to be updated, but for a OneToOneField, it's less critical.
+        # Let's simplify and rely on update_or_create for the single record.
+        # AttendanceCode.objects.filter(class_session=class_session, expires_at__gt=timezone.now()).update(expires_at=timezone.now() - timedelta(seconds=1))
+
+        # Use update_or_create to either update the existing attendance code
+        # for this session or create a new one if it doesn't exist.
+        attendance_code, created = AttendanceCode.objects.update_or_create(
+            class_session=class_session, # This field is used to find the existing object (due to OneToOneField)
+            defaults={ # These are the fields that will be set/updated
+                'code': new_code,
+                'expires_at': expires_at,
+                'is_active': True,
+                'generated_by': request.user, # Also set the generator
+            }
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Código gerado com sucesso!',
+            'code': attendance_code.code, # Use code from the updated/created object
+            'expires_at': attendance_code.expires_at.isoformat(), # ISO format for JavaScript parsing
+            'class_session_id': str(class_session.id) # Ensure string for consistency
+        })
+
+    except Exception as e:
+        print(f"Error saving attendance code: {e}") # Log the error for debugging
+        return JsonResponse({'status': 'error', 'message': f'Erro ao guardar código: {str(e)}'}, status=500)
 
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')

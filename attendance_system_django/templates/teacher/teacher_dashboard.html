@@ -1,26 +1,119 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Teacher Dashboard{% endblock %}
+{% block title %}Dashboard do Formador{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom styles to match the "small-box" look if not using AdminLTE directly */
+        .info-box-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-radius: 8px;
+            color: #fff;
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+            margin-bottom: 1rem;
+            min-height: 90px; /* Ensure consistent height */
+        }
+        .info-box-custom .content {
+            flex-grow: 1;
+        }
+        .info-box-custom h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+            padding: 0;
+            line-height: 1;
+        }
+        .info-box-custom p {
+            font-size: 1rem;
+            margin: 0;
+            opacity: 0.8;
+        }
+        .info-box-custom .icon {
+            font-size: 3rem;
+            opacity: 0.7;
+            margin-left: 15px;
+        }
+
+        /* Background colors (adjust to your theme's color palette if different) */
+        .bg-gradient-info { background: linear-gradient(135deg, #0dcaf0, #0a98b8) !important; }
+        .bg-gradient-success { background: linear-gradient(135deg, #198754, #146c43) !important; }
+        .bg-gradient-warning { background: linear-gradient(135deg, #ffc107, #d9a400) !important; }
+        .bg-gradient-danger { background: linear-gradient(135deg, #dc3545, #b02a37) !important; }
+    </style>
+{% endblock extra_css %}
 
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-lg-10 mx-auto">
-            <h1 class="mb-4 text-center text-primary">Teacher Attendance Dashboard</h1>
-            <p class="text-center text-muted">Manage attendance for your classes.</p>
+            <h1 class="mb-4 text-center text-primary">Dashboard do Formador</h1>
+            <p class="text-center text-muted">Gira as presenças das suas turmas.</p>
 
-            {# Code Generation Section #}
+            {# --- Cartões de Métricas do Painel de Controlo --- #}
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box-custom bg-gradient-info">
+                        <div class="content">
+                            <h3>{{ total_students_enrolled }}</h3>
+                            <p>Total de Alunos Inscritos</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box-custom bg-gradient-success">
+                        <div class="content">
+                            <h3>{{ total_courses_taught }}</h3>
+                            <p>Total de Disciplinas Lecionadas</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box-custom bg-gradient-warning">
+                        <div class="content">
+                            <h3>{{ current_day_sessions }}</h3>
+                            <p>Sessões de Hoje</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="info-box-custom bg-gradient-danger">
+                        <div class="content">
+                            <h3>{{ pending_validations }}</h3>
+                            <p>Validações Pendentes</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# --- Fim dos Cartões de Métricas do Painel de Controlo --- #}
+
+            {# Secção de Geração de Código #}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Generate Attendance Code (10 minutes)</h5>
+                    <h5 class="mb-0">Gerar Código de Presença (10 minutos)</h5>
                 </div>
                 <div class="card-body">
                     {% if teacher_class_sessions_today %}
                     <form id="generateCodeForm" class="row g-3 align-items-end">
                         {% csrf_token %}
                         <div class="col-md-8">
-                            <label for="classSessionSelect" class="form-label">Select Class Session for Code:</label>
+                            <label for="classSessionSelect" class="form-label">Selecionar Sessão de Turma para o Código:</label>
                             <select class="form-select" id="classSessionSelect" name="class_session_id" required>
                                 {% for session in teacher_class_sessions_today %}
                                 <option value="{{ session.id }}"
@@ -34,38 +127,39 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary w-100" id="generateCodeBtn">Generate Code</button>
+                            {# New Generate Code Button #}
+                            <button type="button" class="btn btn-primary w-100" id="triggerGenerateCodeBtn">Gerar Código</button>
                         </div>
                     </form>
                     <hr>
                     <div id="codeDisplayArea" class="text-center mt-3">
                         {% if initial_code_details.code %}
-                        <h4 class="text-secondary">Current Code for <span id="currentCodeCourseName">
+                        <h4 class="text-secondary">Código Atual para <span id="currentCodeCourseName">
                             {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }}{% endif %}
                         </span>:</h4>
                         <div class="d-flex justify-content-center align-items-center">
                             <h2 class="display-4 text-success fw-bold me-3" id="generatedCode">{{ initial_code_details.code }}</h2>
                             <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('#generatedCode')">
-                                <i class="fas fa-copy"></i> Copy
+                                <i class="fas fa-copy"></i> Copiar
                             </button>
                         </div>
-                        <p class="text-muted" id="codeExpiresAt">Expires: <span id="expiresTime">{{ initial_code_details.expires_at|date:'H:i:s' }}</span></p>
+                        <p class="text-muted" id="codeExpiresAt">Expira em: <span id="expiresTime">{{ initial_code_details.expires_at|date:'H:i:s' }}</span></p>
                         {% else %}
-                        <p class="text-muted" id="generatedCodePlaceholder">No active code for the selected class session.</p>
+                        <p class="text-muted" id="generatedCodePlaceholder">Nenhum código ativo para a sessão de turma selecionada.</p>
                         <p class="text-muted" id="codeExpiresAt"></p>
                         {% endif %}
                     </div>
                     {% else %}
-                    <p class="text-muted text-center">You have no active or upcoming classes today to generate codes for.</p>
+                    <p class="text-muted text-center">Não tem turmas ativas ou futuras hoje para gerar códigos.</p>
                     {% endif %}
                 </div>
             </div>
 
-            {# Student Submissions Section #}
+            {# Secção de Submissões de Alunos #}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Student Submissions for <span id="submissionsForClass">
-                        {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }} ({{ active_class_session_for_display.start_time|time:'H:i' }} - {{ active_class_session_for_display.end_time|time:'H:i' }}){% else %}No Class Selected{% endif %}
+                    <h5 class="mb-0">Submissões de Alunos para <span id="submissionsForClass">
+                        {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }} ({{ active_class_session_for_display.start_time|time:'H:i' }} - {{ active_class_session_for_display.end_time|time:'H:i' }}){% else %}Nenhuma Turma Selecionada{% endif %}
                     </span></h5>
                 </div>
                 <div class="card-body">
@@ -73,48 +167,82 @@
                         <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th>Student Name</th>
-                                    <th>Time Submitted</th>
-                                    <th>Status</th>
-                                    <th>AI Result</th>
-                                    <th>Actions</th>
+                                    <th>Nome do Aluno</th>
+                                    <th>Hora da Submissão</th>
+                                    <th>Estado</th>
+                                    <th>Resultado da IA</th>
+                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="studentSubmissionsTableBody">
-                                {# Initial submissions loaded via Django template #}
+                                {# Submissões iniciais carregadas via template Django #}
                                 {% for submission in initial_student_submissions_parsed %}
                                 <tr id="record-{{ submission.id }}" class="{% if submission.is_present %}table-success{% else %}table-warning{% endif %}">
                                     <td>{{ submission.name }}</td>
                                     <td>{{ submission.timestamp|date:'H:i:s' }}</td>
                                     <td id="status-{{ submission.id }}">
                                         {% if submission.is_present %}
-                                            <span class="badge bg-success">Present</span>
+                                            <span class="badge bg-success">Presente</span>
                                         {% else %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            <span class="badge bg-warning text-dark">Pendente</span>
                                         {% endif %}
                                     </td>
                                     <td id="ai-result-{{ submission.id }}">
                                         {% if submission.aiResult %}
                                             <span class="badge {% if submission.aiResult.isFraudulent %}bg-danger{% else %}bg-info{% endif %}">
-                                                AI: {% if submission.aiResult.isFraudulent %}Fraud{% else %}OK{% endif %}
+                                                IA: {% if submission.aiResult.isFraudulent %}Fraude{% else %}OK{% endif %}
                                             </span>
                                             <small class="text-muted d-block">{{ submission.aiResult.fraudExplanation }}</small>
                                         {% else %}
-                                            <span class="badge bg-secondary">Not Run</span>
+                                            <span class="badge bg-secondary">Não Executado</span>
                                         {% endif %}
                                     </td>
                                     <td id="actions-{{ submission.id }}">
                                         {% if not submission.is_present %}
-                                        <button class="btn btn-sm btn-outline-success validate-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Validate</button>
+                                        <button class="btn btn-sm btn-outline-success validate-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Validar</button>
                                         {% endif %}
-                                        <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Run AI</button>
+                                        <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Executar IA</button>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session.</td></tr>
+                                <tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">Nenhuma submissão de aluno ainda para esta sessão de turma.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            {# Secção de Gráficos #}
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title">Presenças vs. Pendentes</h5>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool text-white" data-bs-toggle="collapse" data-bs-target="#pieChartCardBody" aria-expanded="true"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body collapse show" id="pieChartCardBody">
+                            <div class="chart">
+                                <canvas id="pieChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title">Submissões por Disciplina (Hoje)</h5>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool text-white" data-bs-toggle="collapse" data-bs-target="#barChartCardBody" aria-expanded="true"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body collapse show" id="barChartCardBody">
+                            <div class="chart">
+                                <canvas id="barChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -125,7 +253,14 @@
 {% endblock %}
 
 {% block extra_js %}
+{# Certifique-se de que o jQuery esteja carregado para o AJAX existente e para a inicialização do Chart.js #}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{# Chart.js CDN #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{# Font Awesome for icons (if not in base.html) #}
 <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
+
 <script>
     // Parse initial data passed from Django context
     const initialCodeDetails = JSON.parse('{{ initial_code_details|escapejs }}');
@@ -137,41 +272,41 @@
     function copyToClipboard(elementSelector) {
         const textToCopy = document.querySelector(elementSelector).textContent;
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert('Code copied to clipboard!');
+            alert('Código copiado para a área de transferência!');
         }).catch(err => {
-            console.error('Failed to copy: ', err);
+            console.error('Falha ao copiar:', err);
         });
     }
 
     // Function to render a single submission row
     function renderSubmissionRow(submission) {
-        const isPresentBadge = submission.is_present ? '<span class="badge bg-success">Present</span>' : '<span class="badge bg-warning text-dark">Pending</span>';
-        let aiResultBadge = '<span class="badge bg-secondary">Not Run</span>';
+        const isPresentBadge = submission.is_present ? '<span class="badge bg-success">Presente</span>' : '<span class="badge bg-warning text-dark">Pendente</span>';
+        let aiResultBadge = '<span class="badge bg-secondary">Não Executado</span>';
         let aiExplanation = '';
         if (submission.aiResult) {
             const aiBgClass = submission.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
-            aiResultBadge = `<span class="badge ${aiBgClass}">AI: ${submission.aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>`;
+            aiResultBadge = `<span class="badge ${aiBgClass}">IA: ${submission.aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>`;
             aiExplanation = `<small class="text-muted d-block">${submission.aiResult.fraudExplanation}</small>`;
         }
 
-        const validateBtnHtml = submission.is_present ? '' : `<button class="btn btn-sm btn-outline-success validate-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Validate</button>`;
+        const validateBtnHtml = submission.is_present ? '' : `<button class="btn btn-sm btn-outline-success validate-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Validar</button>`;
         const rowClass = submission.is_present ? 'table-success' : 'table-warning';
 
         return `
             <tr id="record-${submission.id}" class="${rowClass}">
                 <td>${submission.name}</td>
-                <td>${new Date(submission.timestamp).toLocaleTimeString()}</td>
+                <td>${new Date(submission.timestamp).toLocaleTimeString('pt-PT')}</td> {# Changed to pt-PT #}
                 <td id="status-${submission.id}">${isPresentBadge}</td>
                 <td id="ai-result-${submission.id}">${aiResultBadge}${aiExplanation}</td>
                 <td id="actions-${submission.id}">
                     ${validateBtnHtml}
-                    <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Run AI</button>
+                    <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Executar IA</button>
                 </td>
             </tr>
         `;
     }
 
-    // Function to attach event listeners to buttons (Validate, Run AI)
+    // Function to attach event listeners to buttons (Validar, Executar IA)
     function attachButtonListeners() {
         document.querySelectorAll('.validate-btn').forEach(button => {
             button.onclick = async (event) => {
@@ -191,15 +326,15 @@
                         }
                         const statusCell = document.getElementById(`status-${recordId}`);
                         if (statusCell) {
-                            statusCell.innerHTML = '<span class="badge bg-success">Present</span>';
+                            statusCell.innerHTML = '<span class="badge bg-success">Presente</span>';
                         }
-                        event.target.remove();
+                        event.target.remove(); // Remove the button after validation
                     } else {
-                        alert(`Error validating attendance: ${data.message}`);
+                        alert(`Erro ao validar presença: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred during validation.');
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro durante a validação.');
                 }
             };
         });
@@ -220,16 +355,16 @@
                         if (aiResultCell) {
                             const aiBgClass = data.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
                             aiResultCell.innerHTML = `
-                                <span class="badge ${aiBgClass}">AI: ${data.aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>
+                                <span class="badge ${aiBgClass}">IA: ${data.aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>
                                 <small class="text-muted d-block">${data.aiResult.fraudExplanation}</small>
                             `;
                         }
                     } else {
-                        alert(`Error running AI validation: ${data.message}`);
+                        alert(`Erro ao executar validação de IA: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred during AI validation.');
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro durante a validação de IA.');
                 }
             };
         });
@@ -243,7 +378,7 @@
             attendanceSocket.close(); // Close existing connection if any
         }
         if (!sessionId) {
-            console.warn("No active class session ID provided for WebSocket connection. Cannot connect.");
+            console.warn("Nenhum ID de sessão de turma ativo fornecido para conexão WebSocket. Não é possível conectar.");
             return;
         }
 
@@ -254,7 +389,7 @@
         attendanceSocket = new WebSocket(wsUrl);
 
         attendanceSocket.onopen = function(e) {
-            console.log("WebSocket connection established for session:", sessionId);
+            console.log("Conexão WebSocket estabelecida para a sessão:", sessionId);
         };
 
         attendanceSocket.onmessage = function(e) {
@@ -263,26 +398,39 @@
             if (data.type === 'send_notification' && data.context && data.context.class_session_id == activeClassSessionId) {
                 if (data.message_type === 'student_submitted') {
                     const newSubmission = data.context;
-                    console.log("New student submission received:", newSubmission);
+                    console.log("Nova submissão de aluno recebida:", newSubmission);
                     const tbody = document.getElementById('studentSubmissionsTableBody');
                     const noSubmissionsRow = document.getElementById('noSubmissionsRow');
                     if (noSubmissionsRow) {
                         noSubmissionsRow.remove();
                     }
                     tbody.insertAdjacentHTML('afterbegin', renderSubmissionRow(newSubmission));
-                    attachButtonListeners();
-                } 
+                    attachButtonListeners(); // Re-attach listeners for new buttons
+                }
                 else if (data.message_type === 'code_generated_for_teacher') {
                     const codeContext = data.context;
                     // Update the UI if the generated code is for the currently selected session
                     if (codeContext.class_session_id == activeClassSessionId) {
                         document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                        document.getElementById('generatedCode').textContent = codeContext.code;
-                        // Use Intl.DateTimeFormat for robust time display
-                        document.getElementById('expiresTime').textContent = new Date(codeContext.expires_at).toLocaleTimeString();
+                        const generatedCodeElement = document.getElementById('generatedCode');
+                        if (generatedCodeElement) {
+                             generatedCodeElement.textContent = codeContext.code;
+                        }
+
+                        const expiresTimeElement = document.getElementById('expiresTime');
+                        if (expiresTimeElement) {
+                            expiresTimeElement.textContent = new Date(codeContext.expires_at).toLocaleTimeString('pt-PT');
+                        }
+                         const currentCodeCourseNameElement = document.getElementById('currentCodeCourseName');
+                         if(currentCodeCourseNameElement) {
+                            const selectedOption = document.getElementById('classSessionSelect').querySelector(`option[value="${codeContext.class_session_id}"]`);
+                            if (selectedOption) {
+                                currentCodeCourseNameElement.textContent = selectedOption.dataset.courseName;
+                            }
+                         }
+                        document.getElementById('codeDisplayArea').style.display = 'block';
                     }
                 }
-                // Handle updates from validate_attendance (teacher dashboard sees its own actions)
                 else if (data.message_type === 'attendance_validated_for_teacher') {
                     const recordId = data.context.record_id;
                     const row = document.getElementById(`record-${recordId}`);
@@ -292,15 +440,13 @@
                     }
                     const statusCell = document.getElementById(`status-${recordId}`);
                     if (statusCell) {
-                        statusCell.innerHTML = '<span class="badge bg-success">Present</span>';
+                        statusCell.innerHTML = '<span class="badge bg-success">Presente</span>';
                     }
-                    // Remove the validate button if it still exists
                     const validateBtn = document.querySelector(`#actions-${recordId} .validate-btn`);
                     if (validateBtn) {
                         validateBtn.remove();
                     }
                 }
-                // Handle updates from run_ai_validation (teacher dashboard sees its own actions)
                 else if (data.message_type === 'ai_result_updated_for_teacher') {
                     const recordId = data.context.record_id;
                     const aiResult = data.context.aiResult;
@@ -308,7 +454,7 @@
                     if (aiResultCell) {
                         const aiBgClass = aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
                         aiResultCell.innerHTML = `
-                            <span class="badge ${aiBgClass}">AI: ${aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>
+                            <span class="badge ${aiBgClass}">IA: ${aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>
                             <small class="text-muted d-block">${aiResult.fraudExplanation}</small>
                         `;
                     }
@@ -317,23 +463,25 @@
         };
 
         attendanceSocket.onclose = function(e) {
-            console.log('WebSocket closed for session:', sessionId, ' Code:', e.code, ' Reason:', e.reason);
+            console.log('WebSocket fechado para a sessão:', sessionId, ' Código:', e.code, ' Razão:', e.reason);
         };
 
         attendanceSocket.onerror = function(e) {
-            console.error('WebSocket error:', e);
+            console.error('Erro no WebSocket:', e);
         };
     }
 
     // --- Page Load and Event Listeners ---
     document.addEventListener('DOMContentLoaded', () => {
-        attachButtonListeners(); // Initial setup for buttons
+        attachButtonListeners();
 
         if (activeClassSessionId) {
             connectWebSocket(activeClassSessionId);
         }
 
         const classSessionSelect = document.getElementById('classSessionSelect');
+        const triggerGenerateCodeBtn = document.getElementById('triggerGenerateCodeBtn'); // Get the new button
+
         if (classSessionSelect) {
             classSessionSelect.addEventListener('change', async (event) => {
                 const selectedSessionId = event.target.value;
@@ -343,124 +491,176 @@
                 const endTime = selectedOption.dataset.endTime;
 
                 document.getElementById('submissionsForClass').textContent = `${courseName} (${startTime} - ${endTime})`;
-                
-                // Update the global activeClassSessionId to match the dropdown selection
+
                 activeClassSessionId = selectedSessionId;
 
-                // Reconnect WebSocket to the newly selected class session's group
                 connectWebSocket(selectedSessionId);
 
-                // AJAX call to fetch current submissions for the newly selected class
-                document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-muted">Loading submissions...</td></tr>';
+                const tbody = document.getElementById('studentSubmissionsTableBody');
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">A carregar submissões...</td></tr>';
                 try {
                     const submissionsResponse = await fetch(`{% url "get_session_submissions" %}?class_session_id=${selectedSessionId}`);
                     const submissionsData = await submissionsResponse.json();
-                    const tbody = document.getElementById('studentSubmissionsTableBody');
-                    tbody.innerHTML = ''; // Clear existing rows
+
+                    tbody.innerHTML = '';
                     if (submissionsData.status === 'success' && submissionsData.submissions.length > 0) {
                         submissionsData.submissions.forEach(submission => {
                             tbody.insertAdjacentHTML('beforeend', renderSubmissionRow(submission));
                         });
-                        attachButtonListeners(); // Re-attach listeners for newly rendered rows
+                        attachButtonListeners();
                     } else {
-                        tbody.innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session.</td></tr>';
+                        tbody.innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">Nenhuma submissão de aluno ainda para esta sessão de turma.</td></tr>';
                     }
                 } catch (error) {
-                    console.error('Error fetching submissions:', error);
-                    document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading submissions.</td></tr>';
+                    console.error('Erro ao buscar submissões:', error);
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Erro ao carregar submissões.</td></tr>';
                 }
 
-                // AJAX call to fetch current code status for the newly selected class
                 try {
-                    // Need a dedicated API endpoint to get code for a session
-                    // Let's create a placeholder for now, you'd implement this in views.py
-                    const codeResponse = await fetch(`/attendance/api/get-code-for-session/?class_session_id=${selectedSessionId}`); // NEW ENDPOINT NEEDED
+                    const codeResponse = await fetch(`/api/get-code-for-session/?class_session_id=${selectedSessionId}`);
                     const codeData = await codeResponse.json();
-                    
-                    if (codeData.status === 'success' && codeData.code_status === 'active') {
+                    if (codeData.status === 'success' && codeData.code_details) {
                         document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                        document.getElementById('generatedCode').textContent = codeData.code;
-                        document.getElementById('expiresTime').textContent = new Date(codeData.expires_at).toLocaleTimeString();
+                        document.getElementById('generatedCode').textContent = codeData.code_details.code;
+                        document.getElementById('expiresTime').textContent = new Date(codeData.code_details.expires_at).toLocaleTimeString('pt-PT');
                         document.getElementById('currentCodeCourseName').textContent = courseName;
+                        document.getElementById('codeDisplayArea').style.display = 'block';
                     } else {
                         document.getElementById('generatedCodePlaceholder').style.display = 'block';
                         document.getElementById('generatedCode').textContent = '';
                         document.getElementById('expiresTime').textContent = '';
                         document.getElementById('currentCodeCourseName').textContent = courseName;
+                        document.getElementById('codeDisplayArea').style.display = 'block';
                     }
                 } catch (error) {
-                    console.error('Error fetching code:', error);
-                    document.getElementById('generatedCodePlaceholder').style.display = 'block';
-                    document.getElementById('generatedCode').textContent = 'Error loading code.';
-                    document.getElementById('expiresTime').textContent = '';
-                    document.getElementById('currentCodeCourseName').textContent = courseName;
+                    console.error('Erro ao buscar código para a sessão:', error);
+                    document.getElementById('generatedCodePlaceholder').textContent = 'Erro ao carregar código.';
+                    document.getElementById('codeDisplayArea').style.display = 'block';
                 }
             });
         }
 
-        // Handle Generate Code form submission
-        const generateCodeForm = document.getElementById('generateCodeForm');
-        if (generateCodeForm) {
-            generateCodeForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-
-                const selectedSessionId = document.getElementById('classSessionSelect').value;
+        // Handle the new "Gerar Código" button click
+        if (triggerGenerateCodeBtn) {
+            triggerGenerateCodeBtn.addEventListener('click', async () => {
+                const selectedSessionId = classSessionSelect.value; // Get the currently selected session ID
                 if (!selectedSessionId) {
-                    alert('Please select a class session to generate a code.');
+                    alert('Por favor, selecione uma sessão de turma para gerar o código.');
                     return;
                 }
 
-                document.getElementById('generateCodeBtn').disabled = true;
-                document.getElementById('generateCodeBtn').textContent = 'Generating...';
+                const formData = new FormData();
+                formData.append('class_session_id', selectedSessionId);
 
                 try {
-                    const response = await fetch('{% url "generate_attendance_code" %}', {
+                    const response = await fetch('{% url "generate_code_api_view" %}', {
                         method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `class_session_id=${selectedSessionId}`
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: formData
                     });
-                    
-                    // Always check response.ok for HTTP errors before trying to parse JSON
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Server response not OK:', response.status, errorText);
-                        throw new Error(`Server responded with status ${response.status}: ${errorText}`);
-                    }
-
                     const data = await response.json();
-
                     if (data.status === 'success') {
                         document.getElementById('generatedCodePlaceholder').style.display = 'none';
                         document.getElementById('generatedCode').textContent = data.code;
-                        // Use Intl.DateTimeFormat for robust time display
-                        document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString();
-                        document.getElementById('currentCodeCourseName').textContent = document.getElementById('classSessionSelect').options[document.getElementById('classSessionSelect').selectedIndex].dataset.courseName;
-                        alert('Attendance code generated successfully!');
+                        document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString('pt-PT');
+
+                        const selectedOption = classSessionSelect.options[classSessionSelect.selectedIndex];
+                        document.getElementById('currentCodeCourseName').textContent = selectedOption.dataset.courseName;
+
+                        document.getElementById('codeDisplayArea').style.display = 'block';
+
+                        alert('Código gerado com sucesso!');
                     } else {
-                        // This else block handles cases where status is not 'success' but the request was HTTP 200
-                        alert(`Error generating code: ${data.message || 'Unknown error from server'}`);
-                        document.getElementById('generatedCode').textContent = 'Error';
-                        document.getElementById('expiresTime').textContent = '';
+                        alert(`Erro ao gerar código: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred during code generation. Check console for details.');
-                    document.getElementById('generatedCode').textContent = 'Error';
-                    document.getElementById('expiresTime').textContent = '';
-                } finally {
-                    document.getElementById('generateCodeBtn').disabled = false;
-                    document.getElementById('generateCodeBtn').textContent = 'Generate Code';
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro durante a geração do código.');
                 }
             });
         }
+
+        // --- Initial Code Generation Form Submission (if you still want it for direct form submit) ---
+        // I've moved the logic to the new `triggerGenerateCodeBtn` click listener for clarity.
+        // If you still have a form submit event, ensure it doesn't conflict.
+        // For simplicity, the form's submit event is now only handled by the explicit button click.
+
+
     });
 
-    // Helper for initial parsing of submissions (though table is mostly JS-rendered now)
-    let initialSubmissionsParsed = [];
-    try {
-        initialSubmissionsParsed = JSON.parse('{{ initial_student_submissions|escapejs }}');
-    } catch (e) {
-        console.error("Error parsing initial_student_submissions:", e);
-    }
+    // --- Chart.js Initialization ---
+    $(document).ready(function(){
+        // Gráfico de Pizza: Presenças vs. Pendentes
+        var pieChartCanvas = $('#pieChart').get(0).getContext('2d');
+        var pieData = {
+            labels: ['Presente', 'Pendente'],
+            datasets: [
+                {
+                    data:[
+                        {{ total_present_attendance|default:0 }},
+                        {{ total_pending_attendance|default:0 }}
+                    ],
+                    backgroundColor : ['#198754', '#ffc107'], // Cores de sucesso e aviso do Bootstrap
+                }
+            ]
+        };
+        var pieOptions = {
+            maintainAspectRatio : false,
+            responsive : true,
+        };
+        new Chart(pieChartCanvas, {
+            type: 'pie',
+            data: pieData,
+            options: pieOptions
+        });
+
+        // Gráfico de Barras: Submissões por Disciplina (Hoje)
+        var subject_names = JSON.parse('{{ course_names_for_chart|safe }}');
+        var submissions_counts = JSON.parse('{{ submissions_per_course_for_chart|safe }}');
+
+        var barChartCanvas = $('#barChart').get(0).getContext('2d');
+        var barChartData = {
+            labels  : subject_names,
+            datasets: [
+                {
+                    label               : 'Submissões Hoje',
+                    backgroundColor     : '#0dcaf0', // Cor info do Bootstrap
+                    borderColor         : '#0dcaf0',
+                    data                : submissions_counts
+                }
+            ]
+        };
+
+        var barOptions = {
+            responsive              : true,
+            maintainAspectRatio     : false,
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        };
+
+        new Chart(barChartCanvas, {
+            type: 'bar',
+            data: barChartData,
+            options: barOptions
+        });
+    });
 </script>
-{% endblock %}
+
+
+{% endblock extra_js %}

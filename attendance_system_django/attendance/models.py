@@ -13,6 +13,7 @@ class AttendanceCode(models.Model):
     expires_at = models.DateTimeField(default=None, null=True) # Set a default in save() if not provided during creation
     created_at = models.DateTimeField(auto_now_add=True)
     generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # <-- ADD THIS LINE
+    is_active = models.BooleanField(default=True)
 
 
     def save(self, *args, **kwargs):
