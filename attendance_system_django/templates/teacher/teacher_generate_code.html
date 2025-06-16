@@ -102,15 +102,20 @@
         updateCodeUI();
 
         generateNewCodeBtn.addEventListener('click', async () => {
+            // Check if there's a class session ID available from the initial context
+            if (!classCodeDetails || !classCodeDetails.class_session_id) {
+                showToast({title: "Error", description: "No active or upcoming class session found for today. Please check the dashboard.", variant: "destructive"});
+                return; // Stop if no session ID
+            }
+
             showToast({title: "Generating code...", description: "Please wait.", variant: "info", duration: 2000});
             try {
+                // Use the correct URL via Django's url template tag
                 const response = await fetch('{% url "generate_attendance_code" %}', {
                     method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=generate' // Dummy body, actual data might be sent if choosing specific class
+                    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+                    // FIX IS HERE: Use classCodeDetails.class_session_id
+                    body: `class_session_id=${classCodeDetails.class_session_id}`
                 });
                 const data = await response.json();
                 if (data.status === 'success') {

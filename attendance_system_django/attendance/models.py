@@ -8,28 +8,30 @@ import uuid
 import datetime
 
 class AttendanceCode(models.Model):
-    code = models.CharField(max_length=6, unique=True, blank=True, null=True)
     class_session = models.OneToOneField(ClassSession, on_delete=models.CASCADE, related_name='attendance_code')
+    code = models.CharField(max_length=6, unique=True, blank=True) # Added blank=True if you set code in save()
+    expires_at = models.DateTimeField(default=None, null=True) # Set a default in save() if not provided during creation
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # <-- ADD THIS LINE
+
 
     def save(self, *args, **kwargs):
         if not self.code:
-            while True:
-                new_code = str(uuid.uuid4()).replace('-', '')[:6].upper()
-                if not AttendanceCode.objects.filter(code=new_code).exists():
-                    self.code = new_code
-                    break
-        # Set expiry to 10 minutes from creation if not already set
+            import secrets
+            import string
+            characters = string.ascii_uppercase + string.digits
+            self.code = ''.join(secrets.choice(characters) for _ in range(6))
         if not self.expires_at:
-            self.expires_at = timezone.now() + datetime.timedelta(minutes=10) # CHANGED TO 10 MINUTES
+            # You might want to remove this default if you explicitly set expires_at in views.py
+            # If you want this to be the fallback, keep it.
+            self.expires_at = timezone.now() + timedelta(minutes=10)
         super().save(*args, **kwargs)
 
     def is_valid(self):
-        return timezone.now() < self.expires_at
+        return self.expires_at is not None and timezone.now() < self.expires_at
 
     def __str__(self):
-        return f"Code {self.code} for {self.class_session.course.name} on {self.class_session.date}"
+        return f"Code: {self.code} for {self.class_session.course.name} ({'Valid' if self.is_valid() else 'Expired'})"
 
 class AttendanceRecord(models.Model):
     class_session = models.ForeignKey(ClassSession, on_delete=models.CASCADE, related_name='attendance_records')

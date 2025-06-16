@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Login{% endblock %}
 
 {% block header %}
     {% include 'includes/_main_header.html' %}
@@ -10,6 +9,8 @@
 {% block content %}
 <div class="flex flex-col items-center justify-center min-h-screen-minus-header">
     <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-xl p-8">
+        <center> <img src="https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg" alt=""></center>
+
         <h2 class="text-3xl font-headline font-bold text-center text-primary mb-6">Login</h2>
         <form method="post">
             {% csrf_token %}

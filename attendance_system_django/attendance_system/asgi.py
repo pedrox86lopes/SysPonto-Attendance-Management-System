@@ -28,7 +28,7 @@ application = ProtocolTypeRouter({
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter(
-                attendance_routing.websocket_urlpatterns # Include your app's WebSocket URLs
+                attendance.routing.websocket_urlpatterns # Include your app's WebSocket URLs
                 # You might include other app's WebSocket URLs here if you have them:
                 # + another_app_routing.websocket_urlpatterns
             )

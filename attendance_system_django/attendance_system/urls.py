@@ -16,8 +16,9 @@ urlpatterns = [
 
 
     # Include app-specific URLs
-    path('teacher/', include('attendance.urls')), # All teacher and student URLs handled by attendance app
-    path('student/', include('attendance.urls')),
+    # path('teacher/', include('attendance.urls')), # All teacher and student URLs handled by attendance app
+    # path('student/', include('attendance.urls')),
+    path('', include('attendance.urls')),
 ]
 
 # Serve static and media files in development

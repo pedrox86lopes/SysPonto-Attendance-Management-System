@@ -125,12 +125,12 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script> {# IMPORTANT: Replace with your actual Font Awesome kit URL #}
+<script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
 <script>
     // Parse initial data passed from Django context
     const initialCodeDetails = JSON.parse('{{ initial_code_details|escapejs }}');
     const initialSubmissions = JSON.parse('{{ initial_student_submissions|escapejs }}');
-    const activeClassSessionId = '{{ active_class_session_id }}';
+    let activeClassSessionId = '{{ active_class_session_id }}'; // Make this 'let' so it can be updated
     const csrfToken = '{{ csrf_token }}';
 
     // Helper to copy text to clipboard
@@ -176,16 +176,14 @@
         document.querySelectorAll('.validate-btn').forEach(button => {
             button.onclick = async (event) => {
                 const recordId = event.target.dataset.recordId;
-                const classSessionId = event.target.dataset.classSessionId; // Pass class_session_id for authorization check
                 try {
-                    const response = await fetch('/attendance/validate-attendance/', {
+                    const response = await fetch('{% url "validate_attendance" %}', {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `attendance_record_id=${recordId}`
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
-                        // Update UI for the specific record
                         const row = document.getElementById(`record-${recordId}`);
                         if (row) {
                             row.classList.remove('table-warning');
@@ -195,7 +193,7 @@
                         if (statusCell) {
                             statusCell.innerHTML = '<span class="badge bg-success">Present</span>';
                         }
-                        event.target.remove(); // Remove the validate button
+                        event.target.remove();
                     } else {
                         alert(`Error validating attendance: ${data.message}`);
                     }
@@ -209,9 +207,9 @@
         document.querySelectorAll('.ai-run-btn').forEach(button => {
             button.onclick = async (event) => {
                 const recordId = event.target.dataset.recordId;
-                const classSessionId = event.target.dataset.classSessionId; // Pass class_session_id for authorization check
+                const classSessionId = event.target.dataset.classSessionId;
                 try {
-                    const response = await fetch('/attendance/run-ai-validation/', {
+                    const response = await fetch('{% url "run_ai_validation" %}', {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `attendance_record_id=${recordId}&class_session_id=${classSessionId}`
@@ -249,11 +247,8 @@
             return;
         }
 
-        // Construct WebSocket URL
-        // Use 'ws://' for http and 'wss://' for https
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const hostname = window.location.host;
-        // The WebSocket URL is now dynamic based on the class_session_id
+        const hostname = '127.0.0.1:8001';
         const wsUrl = `${protocol}${hostname}/ws/attendance/class_session_${sessionId}/`;
 
         attendanceSocket = new WebSocket(wsUrl);
@@ -264,31 +259,58 @@
 
         attendanceSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
+            // Ensure the notification is for the currently active session on the dashboard
             if (data.type === 'send_notification' && data.context && data.context.class_session_id == activeClassSessionId) {
-                // Handle student submission notification
                 if (data.message_type === 'student_submitted') {
                     const newSubmission = data.context;
                     console.log("New student submission received:", newSubmission);
-
-                    // Add the new submission to the table
                     const tbody = document.getElementById('studentSubmissionsTableBody');
                     const noSubmissionsRow = document.getElementById('noSubmissionsRow');
                     if (noSubmissionsRow) {
-                        noSubmissionsRow.remove(); // Remove "No submissions" message
+                        noSubmissionsRow.remove();
                     }
-                    // Prepend new submission to the top of the table
                     tbody.insertAdjacentHTML('afterbegin', renderSubmissionRow(newSubmission));
-                    attachButtonListeners(); // Re-attach listeners for new row
+                    attachButtonListeners();
                 } 
-                // Handle code generation notification (if you want the dashboard itself to react to its own code generation)
                 else if (data.message_type === 'code_generated_for_teacher') {
-                    // This notification is typically handled by the generate code view,
-                    // but if the dashboard is open, it can update itself.
                     const codeContext = data.context;
+                    // Update the UI if the generated code is for the currently selected session
                     if (codeContext.class_session_id == activeClassSessionId) {
                         document.getElementById('generatedCodePlaceholder').style.display = 'none';
                         document.getElementById('generatedCode').textContent = codeContext.code;
+                        // Use Intl.DateTimeFormat for robust time display
                         document.getElementById('expiresTime').textContent = new Date(codeContext.expires_at).toLocaleTimeString();
+                    }
+                }
+                // Handle updates from validate_attendance (teacher dashboard sees its own actions)
+                else if (data.message_type === 'attendance_validated_for_teacher') {
+                    const recordId = data.context.record_id;
+                    const row = document.getElementById(`record-${recordId}`);
+                    if (row) {
+                        row.classList.remove('table-warning');
+                        row.classList.add('table-success');
+                    }
+                    const statusCell = document.getElementById(`status-${recordId}`);
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="badge bg-success">Present</span>';
+                    }
+                    // Remove the validate button if it still exists
+                    const validateBtn = document.querySelector(`#actions-${recordId} .validate-btn`);
+                    if (validateBtn) {
+                        validateBtn.remove();
+                    }
+                }
+                // Handle updates from run_ai_validation (teacher dashboard sees its own actions)
+                else if (data.message_type === 'ai_result_updated_for_teacher') {
+                    const recordId = data.context.record_id;
+                    const aiResult = data.context.aiResult;
+                    const aiResultCell = document.getElementById(`ai-result-${recordId}`);
+                    if (aiResultCell) {
+                        const aiBgClass = aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
+                        aiResultCell.innerHTML = `
+                            <span class="badge ${aiBgClass}">AI: ${aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>
+                            <small class="text-muted d-block">${aiResult.fraudExplanation}</small>
+                        `;
                     }
                 }
             }
@@ -296,8 +318,6 @@
 
         attendanceSocket.onclose = function(e) {
             console.log('WebSocket closed for session:', sessionId, ' Code:', e.code, ' Reason:', e.reason);
-            // Optionally try to reconnect after a delay
-            // setTimeout(() => connectWebSocket(sessionId), 3000); 
         };
 
         attendanceSocket.onerror = function(e) {
@@ -307,16 +327,12 @@
 
     // --- Page Load and Event Listeners ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Initial setup for buttons
-        attachButtonListeners();
+        attachButtonListeners(); // Initial setup for buttons
 
-        // Connect WebSocket for the initially displayed active session
-        // This makes the dashboard receive real-time updates for its primary displayed class.
         if (activeClassSessionId) {
             connectWebSocket(activeClassSessionId);
         }
 
-        // Handle class session selection change in the dropdown
         const classSessionSelect = document.getElementById('classSessionSelect');
         if (classSessionSelect) {
             classSessionSelect.addEventListener('change', async (event) => {
@@ -326,55 +342,59 @@
                 const startTime = selectedOption.dataset.startTime;
                 const endTime = selectedOption.dataset.endTime;
 
-                // Update the "Submissions For Class" header
                 document.getElementById('submissionsForClass').textContent = `${courseName} (${startTime} - ${endTime})`;
                 
-                // Update the activeClassSessionId global variable
-                // This is crucial for the WebSocket to listen to the correct group
-                // and for buttons to have the correct data-class-session-id.
-                window.activeClassSessionId = selectedSessionId;
+                // Update the global activeClassSessionId to match the dropdown selection
+                activeClassSessionId = selectedSessionId;
 
                 // Reconnect WebSocket to the newly selected class session's group
                 connectWebSocket(selectedSessionId);
 
-                // For a proper solution, you'd make an AJAX call here to fetch current submissions
-                // and current code status for the newly selected `selectedSessionId` and then
-                // update `studentSubmissionsTableBody` and `codeDisplayArea`.
-                
-                // --- Placeholder for AJAX fetching submissions for new class ---
+                // AJAX call to fetch current submissions for the newly selected class
                 document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-muted">Loading submissions...</td></tr>';
-                // You would typically make an AJAX request here like:
-                // fetch(`/api/get-submissions-for-session/${selectedSessionId}/`)
-                //    .then(response => response.json())
-                //    .then(data => updateSubmissionsTable(data.submissions));
-                // For now, it will show "Loading..." and then "No submissions" until real AJAX is implemented.
-                setTimeout(() => { // Simulate network delay for fetching data
-                    document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session. (Implement AJAX fetch)</td></tr>';
-                }, 500);
+                try {
+                    const submissionsResponse = await fetch(`{% url "get_session_submissions" %}?class_session_id=${selectedSessionId}`);
+                    const submissionsData = await submissionsResponse.json();
+                    const tbody = document.getElementById('studentSubmissionsTableBody');
+                    tbody.innerHTML = ''; // Clear existing rows
+                    if (submissionsData.status === 'success' && submissionsData.submissions.length > 0) {
+                        submissionsData.submissions.forEach(submission => {
+                            tbody.insertAdjacentHTML('beforeend', renderSubmissionRow(submission));
+                        });
+                        attachButtonListeners(); // Re-attach listeners for newly rendered rows
+                    } else {
+                        tbody.innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching submissions:', error);
+                    document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading submissions.</td></tr>';
+                }
 
-                // --- Placeholder for AJAX fetching current code for new class ---
-                // You would typically make an AJAX request here like:
-                // fetch(`/api/get-code-for-session/${selectedSessionId}/`)
-                //    .then(response => response.json())
-                //    .then(data => {
-                //        if (data.code_status === 'active') {
-                //            document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                //            document.getElementById('generatedCode').textContent = data.code;
-                //            document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString();
-                //            document.getElementById('currentCodeCourseName').textContent = courseName;
-                //        } else {
-                //            document.getElementById('generatedCodePlaceholder').style.display = 'block';
-                //            document.getElementById('generatedCode').textContent = '';
-                //            document.getElementById('expiresTime').textContent = '';
-                //            document.getElementById('currentCodeCourseName').textContent = courseName;
-                //        }
-                //    });
-                
-                // For now, clear code display and show placeholder for the selected class.
-                document.getElementById('generatedCodePlaceholder').style.display = 'block';
-                document.getElementById('generatedCode').textContent = '';
-                document.getElementById('codeExpiresAt').textContent = '';
-                document.getElementById('currentCodeCourseName').textContent = courseName;
+                // AJAX call to fetch current code status for the newly selected class
+                try {
+                    // Need a dedicated API endpoint to get code for a session
+                    // Let's create a placeholder for now, you'd implement this in views.py
+                    const codeResponse = await fetch(`/attendance/api/get-code-for-session/?class_session_id=${selectedSessionId}`); // NEW ENDPOINT NEEDED
+                    const codeData = await codeResponse.json();
+                    
+                    if (codeData.status === 'success' && codeData.code_status === 'active') {
+                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
+                        document.getElementById('generatedCode').textContent = codeData.code;
+                        document.getElementById('expiresTime').textContent = new Date(codeData.expires_at).toLocaleTimeString();
+                        document.getElementById('currentCodeCourseName').textContent = courseName;
+                    } else {
+                        document.getElementById('generatedCodePlaceholder').style.display = 'block';
+                        document.getElementById('generatedCode').textContent = '';
+                        document.getElementById('expiresTime').textContent = '';
+                        document.getElementById('currentCodeCourseName').textContent = courseName;
+                    }
+                } catch (error) {
+                    console.error('Error fetching code:', error);
+                    document.getElementById('generatedCodePlaceholder').style.display = 'block';
+                    document.getElementById('generatedCode').textContent = 'Error loading code.';
+                    document.getElementById('expiresTime').textContent = '';
+                    document.getElementById('currentCodeCourseName').textContent = courseName;
+                }
             });
         }
 
@@ -382,7 +402,7 @@
         const generateCodeForm = document.getElementById('generateCodeForm');
         if (generateCodeForm) {
             generateCodeForm.addEventListener('submit', async (event) => {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
 
                 const selectedSessionId = document.getElementById('classSessionSelect').value;
                 if (!selectedSessionId) {
@@ -394,27 +414,37 @@
                 document.getElementById('generateCodeBtn').textContent = 'Generating...';
 
                 try {
-                    const response = await fetch('/attendance/generate-attendance-code/', {
+                    const response = await fetch('{% url "generate_attendance_code" %}', {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `class_session_id=${selectedSessionId}`
                     });
+                    
+                    // Always check response.ok for HTTP errors before trying to parse JSON
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Server response not OK:', response.status, errorText);
+                        throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+                    }
+
                     const data = await response.json();
 
                     if (data.status === 'success') {
                         document.getElementById('generatedCodePlaceholder').style.display = 'none';
                         document.getElementById('generatedCode').textContent = data.code;
+                        // Use Intl.DateTimeFormat for robust time display
                         document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString();
                         document.getElementById('currentCodeCourseName').textContent = document.getElementById('classSessionSelect').options[document.getElementById('classSessionSelect').selectedIndex].dataset.courseName;
                         alert('Attendance code generated successfully!');
                     } else {
-                        alert(`Error generating code: ${data.message}`);
+                        // This else block handles cases where status is not 'success' but the request was HTTP 200
+                        alert(`Error generating code: ${data.message || 'Unknown error from server'}`);
                         document.getElementById('generatedCode').textContent = 'Error';
                         document.getElementById('expiresTime').textContent = '';
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('An error occurred during code generation.');
+                    alert('An error occurred during code generation. Check console for details.');
                     document.getElementById('generatedCode').textContent = 'Error';
                     document.getElementById('expiresTime').textContent = '';
                 } finally {
@@ -425,22 +455,12 @@
         }
     });
 
-    // Initial parsing of submissions for dynamic rendering on page load.
-    // This is useful if you later decide to re-render the table purely with JS.
-    // For now, the Django template loop already renders the initial state.
+    // Helper for initial parsing of submissions (though table is mostly JS-rendered now)
     let initialSubmissionsParsed = [];
     try {
         initialSubmissionsParsed = JSON.parse('{{ initial_student_submissions|escapejs }}');
     } catch (e) {
         console.error("Error parsing initial_student_submissions:", e);
     }
-    // If you uncomment the `updateSubmissionsTable` call in DOMContentLoaded,
-    // ensure `initialSubmissionsParsed` is correctly populated first.
-
-    // A note on `activeClassSessionId`: In this setup, it's used to identify
-    // which class's submissions are currently being displayed and which
-    // WebSocket group to connect to for real-time updates. When the teacher
-    // changes the selected class in the dropdown, this `activeClassSessionId`
-    // needs to be updated to switch the real-time feed.
 </script>
 {% endblock %}
