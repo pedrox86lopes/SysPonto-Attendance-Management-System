@@ -1,0 +1,90 @@
+/* attendance_system_django/static_dev/input.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 276 47% 93%; /* Very Light Purple (#F3E5F5) */
+    --foreground: 262 30% 20%; /* Darker Purple for text */
+    --card: 0 0% 100%;
+    --card-foreground: 262 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 262 30% 20%;
+    --primary: 262 52% 47%; /* Deep Purple (#673AB7) */
+    --primary-foreground: 0 0% 98%; /* Light color for text on primary */
+    --secondary: 276 30% 85%; /* Lighter purple for secondary elements */
+    --secondary-foreground: 262 52% 47%;
+    --muted: 276 30% 88%;
+    --muted-foreground: 262 30% 40%;
+    --accent: 291 64% 42%; /* Vibrant Violet (#9C27B0) */
+    --accent-foreground: 0 0% 98%; /* Light color for text on accent */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 276 20% 80%;
+    --input: 276 20% 85%;
+    --ring: 262 52% 47%; /* Ring color to match primary */
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --background: 262 30% 10%; /* Dark Purple for dark mode background */
+    --foreground: 276 47% 93%; /* Light Purple for dark mode text */
+    --card: 262 30% 15%;
+    --card-foreground: 276 47% 93%;
+    --popover: 262 30% 15%;
+    --popover-foreground: 276 47% 93%;
+    --primary: 262 60% 60%; /* Brighter Deep Purple for dark mode primary */
+    --primary-foreground: 262 10% 10%;
+    --secondary: 276 30% 25%;
+    --secondary-foreground: 276 47% 93%;
+    --muted: 276 30% 22%;
+    --muted-foreground: 276 30% 70%;
+    --accent: 291 70% 55%; /* Brighter Vibrant Violet for dark mode accent */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 276 20% 30%;
+    --input: 276 20% 25%;
+    --ring: 262 60% 60%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

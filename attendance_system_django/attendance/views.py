@@ -12,6 +12,10 @@ from channels.layers import get_channel_layer
 from datetime import datetime, timedelta
 from django.urls import reverse
 from django.db.models import Q 
+from django.utils.timezone import localdate
+import logging
+
+
 
 # Import your models
 from core.models import User
@@ -69,7 +73,7 @@ def teacher_generate_code(request):
     It pre-loads any currently active or recently expired code for the teacher's
     classes today.
     """
-    today = timezone.localdate()
+    today = localdate()
     current_code_details = {'code_status': 'inactive', 'code': None, 'class_session_id': None, 'expires_at': None}
 
     class_sessions_today = ClassSession.objects.filter(
@@ -136,7 +140,7 @@ def generate_attendance_code(request):
             return JsonResponse({'status': 'error', 'message': 'Permission denied: Not your class.'}, status=403)
 
         # Check if the class is today and is ongoing or upcoming
-        today = timezone.localdate()
+        today = localdate()
         now_time = timezone.now().time()
         # Comparing date objects for 'date' field, and time objects for 'end_time'
         if target_class_session.date != today or target_class_session.end_time < now_time:
@@ -198,7 +202,7 @@ def teacher_dashboard(request):
     Fetches all ongoing/upcoming classes for the teacher today,
     and initial data for the most relevant class session.
     """
-    today = timezone.localdate()
+    today = localdate()
     now_time = timezone.now().time()
 
     teacher_class_sessions_today = ClassSession.objects.filter(
@@ -256,8 +260,8 @@ def teacher_dashboard(request):
                 try:
                     ai_result_data = json.loads(sub.ai_result_json)
                 except json.JSONDecodeError:
-                    print(f"Warning: Could not decode AI result JSON for record ID {sub.id}")
-                    ai_result_data = None
+                    logger = logging.getLogger(__name__)
+                    logger.warning("Could not decode AI result JSON for record ID %s", sub.id)
 
             student_submissions_data.append({
                 'id': sub.id,
@@ -461,21 +465,6 @@ def get_session_submissions(request):
 
     return JsonResponse({'status': 'success', 'submissions': student_submissions_data})
 
-    # Send notification to the class session group for the teacher dashboard to update
-    teacher_dashboard_group_name = f'class_session_{attendance_record.class_session.id}_notifications'
-    send_group_notification(
-        group_name=teacher_dashboard_group_name,
-        message_type='attendance_validated_for_teacher', # New type for dashboard update
-        message=f"Attendance for {attendance_record.student.user.username} has been marked present.",
-        context={
-            'record_id': str(attendance_record.id),
-            'is_present': True,
-            'class_session_id': str(attendance_record.class_session.id),
-        }
-    )
-
-    return JsonResponse({'status': 'success', 'message': 'Attendance validated successfully.'})
-
 # --- Student Views ---
 
 @login_required(login_url='/login/')
@@ -484,7 +473,7 @@ def student_dashboard(request):
     # Get the current student (request.user)
     # The `course__course_enrollments__student=request.user` filter works for this.
 
-    today = timezone.localdate() # Get today's date in the user's local timezone (Europe/Lisbon)
+    today = localdate() # Get today's date in the user's local timezone (Europe/Lisbon)
     now_local_time = timezone.localtime().time() # Get current time (e.g., 11:58:23) in the user's local timezone
     
 
