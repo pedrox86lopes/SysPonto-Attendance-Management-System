@@ -1,488 +1,446 @@
-{% extends 'teacher/teacher_base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Teacher Dashboard{% endblock %}
 
-{% block teacher_content %}
-<div class="space-y-8">
-    <div class="text-center">
-        <h1 class="text-4xl font-headline font-bold text-primary">Attendance Dashboard</h1>
-        <p class="text-lg text-muted-foreground mt-2">
-            Current Class Code: <span id="current-code-dashboard" class="font-bold text-accent font-mono tracking-wider">
-                </span>
-            <span id="code-status-badge-dashboard" class="ml-2">
-                </span>
-        </p>
-        <p id="primary-location-display" class="text-sm text-muted-foreground mt-1">
-            </p>
-    </div>
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h1 class="mb-4 text-center text-primary">Teacher Attendance Dashboard</h1>
+            <p class="text-center text-muted">Manage attendance for your classes.</p>
 
-    <div class="grid gap-4 md:grid-cols-3">
-        <div class="bg-card text-card-foreground rounded-lg border shadow-lg">
-            <div class="flex flex-row items-center justify-between space-y-0 pb-2 p-6">
-                <h3 class="text-sm font-medium">Total Submissions</h3>
-                <i data-lucide="users" class="h-5 w-5 text-muted-foreground"></i>
+            {# Code Generation Section #}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Generate Attendance Code (10 minutes)</h5>
+                </div>
+                <div class="card-body">
+                    {% if teacher_class_sessions_today %}
+                    <form id="generateCodeForm" class="row g-3 align-items-end">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <label for="classSessionSelect" class="form-label">Select Class Session for Code:</label>
+                            <select class="form-select" id="classSessionSelect" name="class_session_id" required>
+                                {% for session in teacher_class_sessions_today %}
+                                <option value="{{ session.id }}"
+                                    data-course-name="{{ session.course.name }}"
+                                    data-start-time="{{ session.start_time|time:'H:i' }}"
+                                    data-end-time="{{ session.end_time|time:'H:i' }}"
+                                    {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
+                                    {{ session.course.name }} ({{ session.course.code }}) - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100" id="generateCodeBtn">Generate Code</button>
+                        </div>
+                    </form>
+                    <hr>
+                    <div id="codeDisplayArea" class="text-center mt-3">
+                        {% if initial_code_details.code %}
+                        <h4 class="text-secondary">Current Code for <span id="currentCodeCourseName">
+                            {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }}{% endif %}
+                        </span>:</h4>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <h2 class="display-4 text-success fw-bold me-3" id="generatedCode">{{ initial_code_details.code }}</h2>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('#generatedCode')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <p class="text-muted" id="codeExpiresAt">Expires: <span id="expiresTime">{{ initial_code_details.expires_at|date:'H:i:s' }}</span></p>
+                        {% else %}
+                        <p class="text-muted" id="generatedCodePlaceholder">No active code for the selected class session.</p>
+                        <p class="text-muted" id="codeExpiresAt"></p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">You have no active or upcoming classes today to generate codes for.</p>
+                    {% endif %}
+                </div>
             </div>
-            <div class="p-6 pt-0">
-                <div id="total-submissions" class="text-2xl font-bold">0</div>
-                <p class="text-xs text-muted-foreground">
-                    students have submitted the code.
-                </p>
-            </div>
-        </div>
-        <div class="bg-card text-card-foreground rounded-lg border shadow-lg">
-            <div class="flex flex-row items-center justify-between space-y-0 pb-2 p-6">
-                <h3 class="text-sm font-medium">AI Analyses Performed</h3>
-                <i data-lucide="scan-search" class="h-5 w-5 text-muted-foreground"></i>
-            </div>
-            <div class="p-6 pt-0">
-                <div id="ai-analyses-performed" class="text-2xl font-bold">0</div>
-                <p class="text-xs text-muted-foreground">
-                    out of 0 submissions analyzed.
-                </p>
-            </div>
-        </div>
-        <div class="bg-card text-card-foreground rounded-lg border shadow-lg">
-            <div class="flex flex-row items-center justify-between space-y-0 pb-2 p-6">
-                <h3 class="text-sm font-medium">Potential Fraud Alerts</h3>
-                <i data-lucide="alert-triangle" class="h-5 w-5 text-destructive"></i>
-            </div>
-            <div class="p-6 pt-0">
-                <div id="potential-fraud-alerts" class="text-2xl font-bold">0</div>
-                <p class="text-xs text-muted-foreground">
-                    submissions flagged by AI.
-                </p>
-            </div>
-        </div>
-    </div>
 
-    <div id="chart-container-wrapper">
-        </div>
+            {# Student Submissions Section #}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Student Submissions for <span id="submissionsForClass">
+                        {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }} ({{ active_class_session_for_display.start_time|time:'H:i' }} - {{ active_class_session_for_display.end_time|time:'H:i' }}){% else %}No Class Selected{% endif %}
+                    </span></h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Time Submitted</th>
+                                    <th>Status</th>
+                                    <th>AI Result</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentSubmissionsTableBody">
+                                {# Initial submissions loaded via Django template #}
+                                {% for submission in initial_student_submissions_parsed %}
+                                <tr id="record-{{ submission.id }}" class="{% if submission.is_present %}table-success{% else %}table-warning{% endif %}">
+                                    <td>{{ submission.name }}</td>
+                                    <td>{{ submission.timestamp|date:'H:i:s' }}</td>
+                                    <td id="status-{{ submission.id }}">
+                                        {% if submission.is_present %}
+                                            <span class="badge bg-success">Present</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td id="ai-result-{{ submission.id }}">
+                                        {% if submission.aiResult %}
+                                            <span class="badge {% if submission.aiResult.isFraudulent %}bg-danger{% else %}bg-info{% endif %}">
+                                                AI: {% if submission.aiResult.isFraudulent %}Fraud{% else %}OK{% endif %}
+                                            </span>
+                                            <small class="text-muted d-block">{{ submission.aiResult.fraudExplanation }}</small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Run</span>
+                                        {% endif %}
+                                    </td>
+                                    <td id="actions-{{ submission.id }}">
+                                        {% if not submission.is_present %}
+                                        <button class="btn btn-sm btn-outline-success validate-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Validate</button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Run AI</button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-
-    <div id="no-submissions-card" class="{% if initial_student_submissions|length > 2 or initial_code_details.code_status == 'inactive' %}hidden{% endif %} text-center py-10 bg-card text-card-foreground rounded-lg border shadow-lg">
-        <div class="p-6">
-            <i data-lucide="help-circle" class="mx-auto h-12 w-12 text-muted-foreground mb-4"></i>
-            <h3 class="text-2xl font-headline font-semibold">No Submissions Yet</h3>
-            <p class="text-muted-foreground mt-2">Waiting for students to submit the class code.</p>
-            <p class="text-sm mt-1">Share the code <span class="font-bold text-accent font-mono" id="share-code-display"></span> with your students.</p>
-        </div>
-    </div>
-
-
-    <div id="student-submissions-card" class="{% if initial_student_submissions|length <= 2 %}hidden{% endif %} bg-card text-card-foreground rounded-lg border shadow-xl">
-        <div class="p-6">
-            <h2 class="text-2xl font-headline font-semibold">Student Submissions (<span id="submission-count">0</span>)</h2>
-            <p class="text-muted-foreground mt-2">Review student attendance and use AI validation for potential fraud detection.</p>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="[&_tr]:border-b">
-                    <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Student Name</th>
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Submitted At</th>
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">IP Address</th>
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Geolocation (Lat, Lon)</th>
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 text-center">AI Validation</th>
-                        <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="student-submissions-table-body" class="[&_tr:last-child]:border-0">
-                    </tbody>
-            </table>
-        </div>
-        <div class="p-6">
-            <p class="text-xs text-muted-foreground">AI validation provides an indication and should be used as a guide. Always verify with other means if concerned.</p>
         </div>
     </div>
 </div>
-{% endblock teacher_content %}
+{% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script> {# IMPORTANT: Replace with your actual Font Awesome kit URL #}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initial data passed from Django view
-        let classCodeDetails = JSON.parse('{{ initial_code_details|safe }}');
-        let studentSubmissions = JSON.parse('{{ initial_student_submissions|safe }}');
-        const knownValidLocations = JSON.parse('{{ known_valid_locations|safe }}');
-        const activeClassSessionId = '{{ active_class_session_id|default:"" }}';
+    // Parse initial data passed from Django context
+    const initialCodeDetails = JSON.parse('{{ initial_code_details|escapejs }}');
+    const initialSubmissions = JSON.parse('{{ initial_student_submissions|escapejs }}');
+    const activeClassSessionId = '{{ active_class_session_id }}';
+    const csrfToken = '{{ csrf_token }}';
 
-        let remainingTimeInterval;
-        let chartInstance; // To hold the Chart.js instance
+    // Helper to copy text to clipboard
+    function copyToClipboard(elementSelector) {
+        const textToCopy = document.querySelector(elementSelector).textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Code copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
 
-        const currentCodeDashboard = document.getElementById('current-code-dashboard');
-        const codeStatusBadgeDashboard = document.getElementById('code-status-badge-dashboard');
-        const primaryLocationDisplay = document.getElementById('primary-location-display');
-        const totalSubmissionsEl = document.getElementById('total-submissions');
-        const aiAnalysesPerformedEl = document.getElementById('ai-analyses-performed');
-        const potentialFraudAlertsEl = document.getElementById('potential-fraud-alerts');
-        const submissionCountEl = document.getElementById('submission-count');
-        const noSubmissionsCard = document.getElementById('no-submissions-card');
-        const studentSubmissionsCard = document.getElementById('student-submissions-card');
-        const studentSubmissionsTableBody = document.getElementById('student-submissions-table-body');
-        const shareCodeDisplay = document.getElementById('share-code-display');
-        const chartContainerWrapper = document.getElementById('chart-container-wrapper');
-
-        function updateDashboardUI() {
-            // Update code display and status
-            if (classCodeDetails && classCodeDetails.code_status !== 'inactive') {
-                currentCodeDashboard.textContent = classCodeDetails.code;
-                shareCodeDisplay.textContent = classCodeDetails.code; // For "No Submissions Yet" card
-                startRemainingTimeTimer();
-                noSubmissionsCard.classList.remove('hidden'); // Show if no submissions, hide otherwise
-            } else {
-                currentCodeDashboard.textContent = 'N/A';
-                shareCodeDisplay.textContent = 'N/A';
-                codeStatusBadgeDashboard.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">No Active Code</span>`;
-                clearInterval(remainingTimeInterval);
-                noSubmissionsCard.classList.remove('hidden'); // Always show "No Active Code" message
-                studentSubmissionsCard.classList.add('hidden'); // Hide submission table
-            }
-
-            // Update primary valid location
-            if (knownValidLocations && knownValidLocations.length > 0) {
-                primaryLocationDisplay.textContent = `Primary Valid Location: Lat ${knownValidLocations[0].latitude.toFixed(4)}, Lon ${knownValidLocations[0].longitude.toFixed(4)}`;
-            } else {
-                primaryLocationDisplay.textContent = '';
-            }
-
-            // Update stats cards
-            const total = studentSubmissions.length;
-            const aiPerformed = studentSubmissions.filter(s => s.aiResult).length;
-            const fraudAlerts = studentSubmissions.filter(s => s.aiResult?.isFraudulent).length;
-            const looksOk = aiPerformed - fraudAlerts;
-
-            totalSubmissionsEl.textContent = total;
-            aiAnalysesPerformedEl.textContent = aiPerformed;
-            aiAnalysesPerformedEl.nextElementSibling.textContent = `out of ${total} submissions analyzed.`;
-            potentialFraudAlertsEl.textContent = fraudAlerts;
-            submissionCountEl.textContent = total;
-
-            // Toggle submission table visibility
-            if (total > 0 && classCodeDetails.code_status !== 'inactive') {
-                noSubmissionsCard.classList.add('hidden');
-                studentSubmissionsCard.classList.remove('hidden');
-            } else {
-                studentSubmissionsCard.classList.add('hidden');
-                if (classCodeDetails.code_status !== 'inactive') { // Only show no submissions card if code is active/expired
-                    noSubmissionsCard.classList.remove('hidden');
-                }
-            }
-
-
-            // Render student submissions table
-            renderSubmissionsTable();
-
-            // Render chart
-            renderChart(looksOk, fraudAlerts);
-
-            lucide.createIcons(); // Re-render Lucide icons
+    // Function to render a single submission row
+    function renderSubmissionRow(submission) {
+        const isPresentBadge = submission.is_present ? '<span class="badge bg-success">Present</span>' : '<span class="badge bg-warning text-dark">Pending</span>';
+        let aiResultBadge = '<span class="badge bg-secondary">Not Run</span>';
+        let aiExplanation = '';
+        if (submission.aiResult) {
+            const aiBgClass = submission.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
+            aiResultBadge = `<span class="badge ${aiBgClass}">AI: ${submission.aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>`;
+            aiExplanation = `<small class="text-muted d-block">${submission.aiResult.fraudExplanation}</small>`;
         }
 
-        function startRemainingTimeTimer() {
-            clearInterval(remainingTimeInterval);
-            if (classCodeDetails && classCodeDetails.expires_at) {
-                remainingTimeInterval = setInterval(() => {
-                    const expiryTime = new Date(classCodeDetails.expires_at);
-                    const now = new Date();
-                    const diffSeconds = Math.max(0, Math.floor((expiryTime.getTime() - now.getTime()) / 1000));
+        const validateBtnHtml = submission.is_present ? '' : `<button class="btn btn-sm btn-outline-success validate-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Validate</button>`;
+        const rowClass = submission.is_present ? 'table-success' : 'table-warning';
 
-                    const minutes = Math.floor(diffSeconds / 60);
-                    const seconds = diffSeconds % 60;
+        return `
+            <tr id="record-${submission.id}" class="${rowClass}">
+                <td>${submission.name}</td>
+                <td>${new Date(submission.timestamp).toLocaleTimeString()}</td>
+                <td id="status-${submission.id}">${isPresentBadge}</td>
+                <td id="ai-result-${submission.id}">${aiResultBadge}${aiExplanation}</td>
+                <td id="actions-${submission.id}">
+                    ${validateBtnHtml}
+                    <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Run AI</button>
+                </td>
+            </tr>
+        `;
+    }
 
-                    const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-                    if (diffSeconds > 0) {
-                        codeStatusBadgeDashboard.innerHTML = `
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
-                                <i data-lucide="clock" class="mr-1 h-3 w-3"></i> Active: ${timeDisplay}
-                            </span>
-                        `;
+    // Function to attach event listeners to buttons (Validate, Run AI)
+    function attachButtonListeners() {
+        document.querySelectorAll('.validate-btn').forEach(button => {
+            button.onclick = async (event) => {
+                const recordId = event.target.dataset.recordId;
+                const classSessionId = event.target.dataset.classSessionId; // Pass class_session_id for authorization check
+                try {
+                    const response = await fetch('/attendance/validate-attendance/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `attendance_record_id=${recordId}`
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        // Update UI for the specific record
+                        const row = document.getElementById(`record-${recordId}`);
+                        if (row) {
+                            row.classList.remove('table-warning');
+                            row.classList.add('table-success');
+                        }
+                        const statusCell = document.getElementById(`status-${recordId}`);
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="badge bg-success">Present</span>';
+                        }
+                        event.target.remove(); // Remove the validate button
                     } else {
-                        classCodeDetails.code_status = 'expired';
-                        codeStatusBadgeDashboard.innerHTML = `
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive text-destructive-foreground">
-                                <i data-lucide="clock" class="mr-1 h-3 w-3"></i> Expired
-                            </span>
-                        `;
-                        clearInterval(remainingTimeInterval);
+                        alert(`Error validating attendance: ${data.message}`);
                     }
-                    lucide.createIcons();
-                }, 1000);
-            }
-        }
-
-        function renderSubmissionsTable() {
-            studentSubmissionsTableBody.innerHTML = ''; // Clear existing rows
-            studentSubmissions.forEach(submission => {
-                const row = document.createElement('tr');
-                row.id = `submission-row-${submission.id}`;
-                row.className = 'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted';
-
-                const submittedAt = new Date(submission.timestamp);
-                const aiBadge = submission.aiResult
-                    ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${submission.aiResult.isFraudulent ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'} cursor-pointer" title="${submission.aiResult.fraudExplanation}">
-                        <i data-lucide="${submission.aiResult.isFraudulent ? 'alert-circle' : 'check-circle'}" class="mr-1 h-4 w-4"></i>
-                        ${submission.aiResult.isFraudulent ? "Potential Fraud" : "Looks OK"}
-                      </span>`
-                    : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground cursor-default">Not Analyzed</span>`;
-
-                const geolocationDisplay = submission.simulatedGeolocation
-                    ? `${submission.simulatedGeolocation.latitude.toFixed(2)}, ${submission.simulatedGeolocation.longitude.toFixed(2)}`
-                    : "N/A";
-
-                row.innerHTML = `
-                    <td class="p-4 align-middle font-medium">${submission.name}</td>
-                    <td class="p-4 align-middle">
-                        <div class="flex items-center gap-1 text-sm text-muted-foreground">
-                            <i data-lucide="clock" class="h-4 w-4"></i>
-                            ${submittedAt.toLocaleString()}
-                        </div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="flex items-center gap-1 text-sm text-muted-foreground">
-                            <i data-lucide="wifi" class="h-4 w-4"></i>
-                            ${submission.simulatedIp || "N/A"}
-                        </div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="flex items-center gap-1 text-sm text-muted-foreground">
-                            <i data-lucide="map-pin" class="h-4 w-4"></i>
-                            ${geolocationDisplay}
-                        </div>
-                    </td>
-                    <td class="p-4 align-middle text-center">
-                        <div id="ai-status-${submission.id}">
-                            ${submission.aiLoading ? '<div class="w-24 mx-auto h-2 bg-secondary rounded-full animate-pulse"></div>' : aiBadge}
-                        </div>
-                    </td>
-                    <td class="p-4 align-middle text-right">
-                        <button type="button" data-record-id="${submission.id}" class="run-ai-validation-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-accent hover:bg-accent/90 text-accent-foreground">
-                            <i data-lucide="sparkles" class="mr-2 h-4 w-4"></i>
-                            ${submission.aiResult ? "Re-analyze" : "Analyze"}
-                        </button>
-                        ${!submission.is_present ? `
-                            <button type="button" data-record-id="${submission.id}" class="validate-attendance-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground ml-2">
-                                <i data-lucide="check" class="mr-2 h-4 w-4"></i>
-                                Validate
-                            </button>
-                        ` : `
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white ml-2">
-                                <i data-lucide="check" class="mr-1 h-3 w-3"></i> Present
-                            </span>
-                        `}
-                    </td>
-                `;
-                studentSubmissionsTableBody.appendChild(row);
-            });
-            attachEventHandlers(); // Attach handlers to new buttons
-            lucide.createIcons(); // Re-render Lucide icons
-        }
-
-        function attachEventHandlers() {
-            document.querySelectorAll('.run-ai-validation-btn').forEach(button => {
-                button.onclick = async () => {
-                    const recordId = button.dataset.recordId;
-                    const submission = studentSubmissions.find(s => s.id == recordId);
-                    if (!submission || classCodeDetails.code_status !== 'active') return;
-
-                    // Update UI to show loading state
-                    const aiStatusDiv = document.getElementById(`ai-status-${recordId}`);
-                    if (aiStatusDiv) {
-                        aiStatusDiv.innerHTML = '<div class="w-24 mx-auto h-2 bg-secondary rounded-full animate-pulse"></div>';
-                    }
-                    button.disabled = true;
-
-                    try {
-                        const response = await fetch('{% url "run_ai_validation" %}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}',
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `attendance_record_id=${recordId}&class_session_id=${activeClassSessionId}`
-                        });
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            const updatedSubmission = { ...submission, aiResult: data.aiResult };
-                            studentSubmissions = studentSubmissions.map(s => s.id === updatedSubmission.id ? updatedSubmission : s);
-                            showToast({title: "AI Analysis Complete", description: data.aiResult.fraudExplanation, variant: data.aiResult.isFraudulent ? "destructive" : "success"});
-                            updateDashboardUI(); // Re-render everything to update stats and table
-                        } else {
-                            showToast({title: "AI Analysis Error", description: data.message, variant: "destructive"});
-                        }
-                    } catch (error) {
-                        console.error('Error running AI validation:', error);
-                        showToast({title: "Error", description: "Failed to run AI validation.", variant: "destructive"});
-                    } finally {
-                        button.disabled = false; // Re-enable button after attempt
-                    }
-                };
-            });
-
-            document.querySelectorAll('.validate-attendance-btn').forEach(button => {
-                button.onclick = async () => {
-                    const recordId = button.dataset.recordId;
-                    const submission = studentSubmissions.find(s => s.id == recordId);
-                    if (!submission) return;
-
-                    button.disabled = true;
-
-                    try {
-                        const response = await fetch('{% url "validate_attendance" %}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}',
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `attendance_record_id=${recordId}`
-                        });
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            const updatedSubmission = { ...submission, is_present: true };
-                            studentSubmissions = studentSubmissions.map(s => s.id === updatedSubmission.id ? updatedSubmission : s);
-                            showToast({title: "Attendance Validated!", description: data.message, variant: "success"});
-                            updateDashboardUI(); // Re-render everything
-                        } else {
-                            showToast({title: "Validation Error", description: data.message, variant: "destructive"});
-                        }
-                    } catch (error) {
-                        console.error('Error validating attendance:', error);
-                        showToast({title: "Error", description: "Failed to validate attendance.", variant: "destructive"});
-                    } finally {
-                        button.disabled = false;
-                    }
-                };
-            });
-        }
-
-
-        // Chart.js rendering function
-        function renderChart(looksOk, fraudulent) {
-            if (chartInstance) {
-                chartInstance.destroy(); // Destroy old chart instance
-            }
-            if (!chartContainerWrapper) return; // Ensure container exists
-
-            // Clear previous content
-            chartContainerWrapper.innerHTML = `
-                <div class="bg-card text-card-foreground rounded-lg border shadow-xl">
-                    <div class="p-6">
-                        <h3 class="text-xl font-headline font-semibold">AI Validation Overview</h3>
-                        <p class="text-muted-foreground mt-2">Breakdown of AI validated submissions.</p>
-                    </div>
-                    <div class="p-4 h-[300px]">
-                        <canvas id="attendanceChart"></canvas>
-                    </div>
-                </div>
-            `;
-
-            const ctx = document.getElementById('attendanceChart');
-            if (!ctx) return;
-
-            const chartData = {
-                labels: ['AI Validation'],
-                datasets: [
-                    {
-                        label: 'Looks OK',
-                        data: [looksOk],
-                        backgroundColor: 'hsl(var(--primary))', // Use CSS variable
-                        borderRadius: 4,
-                    },
-                    {
-                        label: 'Potential Fraud',
-                        data: [fraudulent],
-                        backgroundColor: 'hsl(var(--destructive))', // Use CSS variable
-                        borderRadius: 4,
-                    },
-                ],
-            };
-
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        stacked: true,
-                        grid: { display: false },
-                        ticks: { display: false },
-                        border: { display: false }
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        grid: { color: 'hsl(var(--border))' },
-                        ticks: { color: 'hsl(var(--muted-foreground))' },
-                        border: { display: false }
-                    },
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            color: 'hsl(var(--foreground))',
-                            usePointStyle: true,
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'hsl(var(--card))',
-                        titleColor: 'hsl(var(--card-foreground))',
-                        bodyColor: 'hsl(var(--muted-foreground))',
-                        borderColor: 'hsl(var(--border))',
-                        borderWidth: 1,
-                        cornerRadius: 4,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y;
-                                }
-                                return label;
-                            }
-                        }
-                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred during validation.');
                 }
             };
+        });
 
-            if (looksOk + fraudulent > 0) { // Only render if there's data to show
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: chartData,
-                    options: chartOptions,
-                });
-            } else {
-                 chartContainerWrapper.innerHTML = `
-                    <div class="bg-card text-card-foreground rounded-lg border shadow-xl p-6 text-center">
-                        <h3 class="text-xl font-headline font-semibold">AI Validation Overview</h3>
-                        <p class="text-muted-foreground mt-2">No AI analyses performed yet.</p>
-                    </div>
-                `;
-            }
-            lucide.createIcons();
+        document.querySelectorAll('.ai-run-btn').forEach(button => {
+            button.onclick = async (event) => {
+                const recordId = event.target.dataset.recordId;
+                const classSessionId = event.target.dataset.classSessionId; // Pass class_session_id for authorization check
+                try {
+                    const response = await fetch('/attendance/run-ai-validation/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `attendance_record_id=${recordId}&class_session_id=${classSessionId}`
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success' && data.aiResult) {
+                        const aiResultCell = document.getElementById(`ai-result-${recordId}`);
+                        if (aiResultCell) {
+                            const aiBgClass = data.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
+                            aiResultCell.innerHTML = `
+                                <span class="badge ${aiBgClass}">AI: ${data.aiResult.isFraudulent ? 'Fraud' : 'OK'}</span>
+                                <small class="text-muted d-block">${data.aiResult.fraudExplanation}</small>
+                            `;
+                        }
+                    } else {
+                        alert(`Error running AI validation: ${data.message}`);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred during AI validation.');
+                }
+            };
+        });
+    }
+
+    // --- WebSocket for Real-time Notifications ---
+    let attendanceSocket = null;
+
+    function connectWebSocket(sessionId) {
+        if (attendanceSocket && attendanceSocket.readyState === WebSocket.OPEN) {
+            attendanceSocket.close(); // Close existing connection if any
+        }
+        if (!sessionId) {
+            console.warn("No active class session ID provided for WebSocket connection. Cannot connect.");
+            return;
         }
 
-        // Initial UI rendering
-        updateDashboardUI();
+        // Construct WebSocket URL
+        // Use 'ws://' for http and 'wss://' for https
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const hostname = window.location.host;
+        // The WebSocket URL is now dynamic based on the class_session_id
+        const wsUrl = `${protocol}${hostname}/ws/attendance/class_session_${sessionId}/`;
 
-        // Global function for WebSocket updates (from base.html)
-        window.updateTeacherDashboardOnSubmission = function(context) {
-            // Add new submission to local state
-            const newSubmission = {
-                id: context.attendance_record_id,
-                name: context.student_name,
-                timestamp: new Date().toISOString(), // Use current time or context.timestamp if provided
-                simulatedIp: 'N/A', // Not sent via WS, will be N/A or require another fetch
-                simulatedGeolocation: null, // Not sent via WS
-                aiResult: null,
-                is_present: false,
-            };
-            studentSubmissions.push(newSubmission);
-            updateDashboardUI(); // Re-render dashboard
-            showToast({title: "New Submission!", description: `Student ${context.student_name} submitted attendance for your class.`, variant: "success"});
+        attendanceSocket = new WebSocket(wsUrl);
+
+        attendanceSocket.onopen = function(e) {
+            console.log("WebSocket connection established for session:", sessionId);
         };
+
+        attendanceSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'send_notification' && data.context && data.context.class_session_id == activeClassSessionId) {
+                // Handle student submission notification
+                if (data.message_type === 'student_submitted') {
+                    const newSubmission = data.context;
+                    console.log("New student submission received:", newSubmission);
+
+                    // Add the new submission to the table
+                    const tbody = document.getElementById('studentSubmissionsTableBody');
+                    const noSubmissionsRow = document.getElementById('noSubmissionsRow');
+                    if (noSubmissionsRow) {
+                        noSubmissionsRow.remove(); // Remove "No submissions" message
+                    }
+                    // Prepend new submission to the top of the table
+                    tbody.insertAdjacentHTML('afterbegin', renderSubmissionRow(newSubmission));
+                    attachButtonListeners(); // Re-attach listeners for new row
+                } 
+                // Handle code generation notification (if you want the dashboard itself to react to its own code generation)
+                else if (data.message_type === 'code_generated_for_teacher') {
+                    // This notification is typically handled by the generate code view,
+                    // but if the dashboard is open, it can update itself.
+                    const codeContext = data.context;
+                    if (codeContext.class_session_id == activeClassSessionId) {
+                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
+                        document.getElementById('generatedCode').textContent = codeContext.code;
+                        document.getElementById('expiresTime').textContent = new Date(codeContext.expires_at).toLocaleTimeString();
+                    }
+                }
+            }
+        };
+
+        attendanceSocket.onclose = function(e) {
+            console.log('WebSocket closed for session:', sessionId, ' Code:', e.code, ' Reason:', e.reason);
+            // Optionally try to reconnect after a delay
+            // setTimeout(() => connectWebSocket(sessionId), 3000); 
+        };
+
+        attendanceSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+        };
+    }
+
+    // --- Page Load and Event Listeners ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initial setup for buttons
+        attachButtonListeners();
+
+        // Connect WebSocket for the initially displayed active session
+        // This makes the dashboard receive real-time updates for its primary displayed class.
+        if (activeClassSessionId) {
+            connectWebSocket(activeClassSessionId);
+        }
+
+        // Handle class session selection change in the dropdown
+        const classSessionSelect = document.getElementById('classSessionSelect');
+        if (classSessionSelect) {
+            classSessionSelect.addEventListener('change', async (event) => {
+                const selectedSessionId = event.target.value;
+                const selectedOption = event.target.options[event.target.selectedIndex];
+                const courseName = selectedOption.dataset.courseName;
+                const startTime = selectedOption.dataset.startTime;
+                const endTime = selectedOption.dataset.endTime;
+
+                // Update the "Submissions For Class" header
+                document.getElementById('submissionsForClass').textContent = `${courseName} (${startTime} - ${endTime})`;
+                
+                // Update the activeClassSessionId global variable
+                // This is crucial for the WebSocket to listen to the correct group
+                // and for buttons to have the correct data-class-session-id.
+                window.activeClassSessionId = selectedSessionId;
+
+                // Reconnect WebSocket to the newly selected class session's group
+                connectWebSocket(selectedSessionId);
+
+                // For a proper solution, you'd make an AJAX call here to fetch current submissions
+                // and current code status for the newly selected `selectedSessionId` and then
+                // update `studentSubmissionsTableBody` and `codeDisplayArea`.
+                
+                // --- Placeholder for AJAX fetching submissions for new class ---
+                document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-muted">Loading submissions...</td></tr>';
+                // You would typically make an AJAX request here like:
+                // fetch(`/api/get-submissions-for-session/${selectedSessionId}/`)
+                //    .then(response => response.json())
+                //    .then(data => updateSubmissionsTable(data.submissions));
+                // For now, it will show "Loading..." and then "No submissions" until real AJAX is implemented.
+                setTimeout(() => { // Simulate network delay for fetching data
+                    document.getElementById('studentSubmissionsTableBody').innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">No student submissions yet for this class session. (Implement AJAX fetch)</td></tr>';
+                }, 500);
+
+                // --- Placeholder for AJAX fetching current code for new class ---
+                // You would typically make an AJAX request here like:
+                // fetch(`/api/get-code-for-session/${selectedSessionId}/`)
+                //    .then(response => response.json())
+                //    .then(data => {
+                //        if (data.code_status === 'active') {
+                //            document.getElementById('generatedCodePlaceholder').style.display = 'none';
+                //            document.getElementById('generatedCode').textContent = data.code;
+                //            document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString();
+                //            document.getElementById('currentCodeCourseName').textContent = courseName;
+                //        } else {
+                //            document.getElementById('generatedCodePlaceholder').style.display = 'block';
+                //            document.getElementById('generatedCode').textContent = '';
+                //            document.getElementById('expiresTime').textContent = '';
+                //            document.getElementById('currentCodeCourseName').textContent = courseName;
+                //        }
+                //    });
+                
+                // For now, clear code display and show placeholder for the selected class.
+                document.getElementById('generatedCodePlaceholder').style.display = 'block';
+                document.getElementById('generatedCode').textContent = '';
+                document.getElementById('codeExpiresAt').textContent = '';
+                document.getElementById('currentCodeCourseName').textContent = courseName;
+            });
+        }
+
+        // Handle Generate Code form submission
+        const generateCodeForm = document.getElementById('generateCodeForm');
+        if (generateCodeForm) {
+            generateCodeForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                const selectedSessionId = document.getElementById('classSessionSelect').value;
+                if (!selectedSessionId) {
+                    alert('Please select a class session to generate a code.');
+                    return;
+                }
+
+                document.getElementById('generateCodeBtn').disabled = true;
+                document.getElementById('generateCodeBtn').textContent = 'Generating...';
+
+                try {
+                    const response = await fetch('/attendance/generate-attendance-code/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `class_session_id=${selectedSessionId}`
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
+                        document.getElementById('generatedCode').textContent = data.code;
+                        document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString();
+                        document.getElementById('currentCodeCourseName').textContent = document.getElementById('classSessionSelect').options[document.getElementById('classSessionSelect').selectedIndex].dataset.courseName;
+                        alert('Attendance code generated successfully!');
+                    } else {
+                        alert(`Error generating code: ${data.message}`);
+                        document.getElementById('generatedCode').textContent = 'Error';
+                        document.getElementById('expiresTime').textContent = '';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred during code generation.');
+                    document.getElementById('generatedCode').textContent = 'Error';
+                    document.getElementById('expiresTime').textContent = '';
+                } finally {
+                    document.getElementById('generateCodeBtn').disabled = false;
+                    document.getElementById('generateCodeBtn').textContent = 'Generate Code';
+                }
+            });
+        }
     });
+
+    // Initial parsing of submissions for dynamic rendering on page load.
+    // This is useful if you later decide to re-render the table purely with JS.
+    // For now, the Django template loop already renders the initial state.
+    let initialSubmissionsParsed = [];
+    try {
+        initialSubmissionsParsed = JSON.parse('{{ initial_student_submissions|escapejs }}');
+    } catch (e) {
+        console.error("Error parsing initial_student_submissions:", e);
+    }
+    // If you uncomment the `updateSubmissionsTable` call in DOMContentLoaded,
+    // ensure `initialSubmissionsParsed` is correctly populated first.
+
+    // A note on `activeClassSessionId`: In this setup, it's used to identify
+    // which class's submissions are currently being displayed and which
+    // WebSocket group to connect to for real-time updates. When the teacher
+    // changes the selected class in the dropdown, this `activeClassSessionId`
+    // needs to be updated to switch the real-time feed.
 </script>
-{% endblock extra_js %}
+{% endblock %}

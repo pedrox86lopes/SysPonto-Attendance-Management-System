@@ -1,36 +1,31 @@
 # attendance/models.py
 
 from django.db import models
-from core.models import User # Assuming User is in core
-from courses.models import ClassSession, Course # Assuming these are in courses
+from core.models import User
+from courses.models import ClassSession, Course
 from django.utils import timezone
-import uuid # For generating UUIDs
-import datetime # For timedelta
+import uuid
+import datetime
 
 class AttendanceCode(models.Model):
-    # 'code' is now blank=True, null=True, and generated in the save method
     code = models.CharField(max_length=6, unique=True, blank=True, null=True)
     class_session = models.OneToOneField(ClassSession, on_delete=models.CASCADE, related_name='attendance_code')
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 
     def save(self, *args, **kwargs):
-        # Generate a unique 6-character uppercase alphanumeric code if not already set
         if not self.code:
             while True:
-                # Generate a UUID and take the first 6 uppercase characters
                 new_code = str(uuid.uuid4()).replace('-', '')[:6].upper()
-                # Ensure the generated code is truly unique before saving
                 if not AttendanceCode.objects.filter(code=new_code).exists():
                     self.code = new_code
                     break
-        # Set expiry if not already set (e.g., 5 minutes from creation)
+        # Set expiry to 10 minutes from creation if not already set
         if not self.expires_at:
-            self.expires_at = timezone.now() + datetime.timedelta(minutes=5)
+            self.expires_at = timezone.now() + datetime.timedelta(minutes=10) # CHANGED TO 10 MINUTES
         super().save(*args, **kwargs)
 
     def is_valid(self):
-        """Checks if the attendance code is currently active (not expired)."""
         return timezone.now() < self.expires_at
 
     def __str__(self):

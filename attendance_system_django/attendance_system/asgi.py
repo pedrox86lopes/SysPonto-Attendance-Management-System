@@ -23,11 +23,14 @@ import attendance.routing
 
 
 application = ProtocolTypeRouter({
-    "http": django_asgi_app, # Handles regular HTTP requests
+    "http": get_asgi_application(),
+    # Add WebSocket protocol routing
     "websocket": AllowedHostsOriginValidator(
-        AuthMiddlewareStack( # Handles Django authentication for WebSockets
-            URLRouter( # Routes WebSocket connections
-                attendance.routing.websocket_urlpatterns # Your WebSocket URL patterns
+        AuthMiddlewareStack(
+            URLRouter(
+                attendance_routing.websocket_urlpatterns # Include your app's WebSocket URLs
+                # You might include other app's WebSocket URLs here if you have them:
+                # + another_app_routing.websocket_urlpatterns
             )
         )
     ),

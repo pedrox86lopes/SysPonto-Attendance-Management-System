@@ -124,32 +124,34 @@ def teacher_generate_code(request):
 @require_POST # This view only accepts POST requests
 def generate_attendance_code(request):
     """
-    API endpoint for teachers to generate a new attendance code for an active class.
-    It automatically selects an active/upcoming class session for the teacher today.
+    API endpoint for teachers to generate a new attendance code for a SELECTED class.
+    Now expects a 'class_session_id' in the POST request from the form.
     """
-    # Find active or upcoming class sessions for the current teacher today
-    teacher_classes_today = ClassSession.objects.filter(
-        course__teachers=request.user,
-        date=timezone.localdate()
-    ).order_by('start_time')
+    class_session_id = request.POST.get('class_session_id')
+    if not class_session_id:
+        return JsonResponse({'status': 'error', 'message': 'Class session ID is required.'}, status=400)
 
-    # Get current time for filtering
-    now_time = timezone.now().time()
+    try:
+        target_class_session = ClassSession.objects.get(id=class_session_id)
+        # Verify the teacher is associated with this class's course
+        if not target_class_session.course.teachers.filter(id=request.user.id).exists():
+            return JsonResponse({'status': 'error', 'message': 'Permission denied: Not your class.'}, status=403)
 
-    # Find the first class session that is either ongoing or upcoming today
-    target_class_session = None
-    for session in teacher_classes_today:
-        if session.end_time > now_time: # Class has not ended yet
-            target_class_session = session
-            break
+        # Check if the class is today and is ongoing or upcoming
+        today = timezone.localdate()
+        now_time = timezone.now().time()
+        if target_class_session.date != today or target_class_session.end_time < now_time:
+             return JsonResponse({'status': 'error', 'message': 'Cannot generate code for past or non-today class.'}, status=400)
 
-    if not target_class_session:
-        return JsonResponse({'status': 'error', 'message': 'You have no active or upcoming classes today to generate a code for.'}, status=400)
+
+    except ClassSession.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Class session not found.'}, status=404)
 
     # Delete any existing attendance code for this specific session
     AttendanceCode.objects.filter(class_session=target_class_session).delete()
 
     # Create a new attendance code for the target session
+    # The 10-minute expiry is handled in the AttendanceCode model's save method.
     new_code_obj = AttendanceCode.objects.create(class_session=target_class_session)
 
     # Send a real-time notification to the teacher (their personal group)
@@ -178,39 +180,40 @@ def generate_attendance_code(request):
 @user_passes_test(is_teacher, login_url='/login/')
 def teacher_dashboard(request):
     """
-    Renders the teacher's attendance dashboard (equivalent to Next.js
-    teacher/dashboard/page.tsx).
-    Fetches details of the current active class code and student submissions
-    for the most relevant class session.
+    Renders the teacher's attendance dashboard.
+    Fetches all ongoing/upcoming classes for the teacher today,
+    and initial data for the most relevant class session.
     """
     today = timezone.localdate()
+    now_time = timezone.now().time()
+
+    # Get all active/upcoming class sessions for the current teacher today
+    # These are the classes the teacher can select to generate codes for.
+    teacher_class_sessions_today = ClassSession.objects.filter(
+        course__teachers=request.user,
+        date=today,
+        end_time__gte=now_time # Only classes that are ongoing or start later today
+    ).order_by('start_time').select_related('course')
+
     current_code_details = {'code_status': 'inactive', 'code': None, 'class_session_id': None, 'expires_at': None}
     student_submissions_data = []
-    active_class_session = None
+    active_class_session_for_display = None # The session whose submissions are currently shown
 
-    # Get classes taught by this teacher today
-    teacher_classes = ClassSession.objects.filter(
-        course__teachers=request.user,
-        date=today
-    ).order_by('-start_time').select_related('course') # Ordered to find the most recent/active first
-
-    # Determine the "active" session for the dashboard display
-    for session in teacher_classes:
+    # Determine the "active" session for dashboard display (prioritize active code or next upcoming)
+    for session in teacher_class_sessions_today:
         try:
             code_obj = AttendanceCode.objects.get(class_session=session)
             if code_obj.is_valid():
-                active_class_session = session
+                active_class_session_for_display = session
                 current_code_details = {
                     'code': code_obj.code,
                     'class_session_id': session.id,
                     'expires_at': code_obj.expires_at.isoformat(),
                     'code_status': 'active'
                 }
-                break # Found an active code, use this session
-            elif session.end_time >= timezone.now().time() and not active_class_session:
-                # If no active code yet, but this class is still ongoing or upcoming today,
-                # use it as the main session to display, even if its code is expired.
-                active_class_session = session
+                break # Found an active code, use this session for primary display
+            elif not active_class_session_for_display: # If no active code yet, but this class is still relevant today
+                active_class_session_for_display = session
                 current_code_details = {
                     'code': code_obj.code,
                     'class_session_id': session.id,
@@ -218,19 +221,21 @@ def teacher_dashboard(request):
                     'code_status': 'expired'
                 }
         except AttendanceCode.DoesNotExist:
-            if session.end_time >= timezone.now().time() and not active_class_session:
-                # If no code exists, but class is still relevant, set it as active session
-                active_class_session = session
+            if not active_class_session_for_display: # If no code exists, but class is still relevant
+                active_class_session_for_display = session
 
-    # If no active_class_session was determined above, just take the first class today (if any)
-    # This ensures the dashboard always tries to display data for a relevant class today.
-    if not active_class_session and teacher_classes.exists():
-        active_class_session = teacher_classes.first()
-        current_code_details = {'code_status': 'inactive', 'code': None, 'class_session_id': active_class_session.id, 'expires_at': None}
+    # If no relevant class found with or without code, just pick the first one if any exist
+    if not active_class_session_for_display and teacher_class_sessions_today.exists():
+        active_class_session_for_display = teacher_class_sessions_today.first()
+        current_code_details = {'code_status': 'inactive', 'code': None, 'class_session_id': active_class_session_for_display.id, 'expires_at': None}
 
-    # Fetch student submissions for the determined active_class_session
-    if active_class_session:
-        submissions = AttendanceRecord.objects.filter(class_session=active_class_session).select_related('student')
+
+    # Fetch student submissions for the determined active_class_session_for_display
+    if active_class_session_for_display:
+        submissions = AttendanceRecord.objects.filter(
+            class_session=active_class_session_for_display
+        ).select_related('student').order_by('timestamp') # Order by timestamp
+        
         for sub in submissions:
             student_submissions_data.append({
                 'id': sub.id,
@@ -243,17 +248,18 @@ def teacher_dashboard(request):
             })
 
     # Known valid locations (hardcoded for now, can come from model/settings in production)
-    # These are example coordinates for CESAE Digital (Braga)
     known_valid_locations = [
-        {"latitude": 41.5369, "longitude": -8.4239},
-        # You can add more known valid locations if the teacher moves classrooms
+        {"latitude": 41.5369, "longitude": -8.4239}, # Example coordinates for CESAE Digital (Braga)
     ]
 
     context = {
+        'teacher_class_sessions_today': teacher_class_sessions_today, # All classes for today for the dropdown
+        'active_class_session_for_display': active_class_session_for_display, # The one whose submissions are initially shown
         'initial_code_details': json.dumps(current_code_details),
         'initial_student_submissions': json.dumps(student_submissions_data),
         'known_valid_locations': json.dumps(known_valid_locations),
-        'active_class_session_id': active_class_session.id if active_class_session else None
+        # Pass the ID of the active session so JS knows which channel to listen to for student submissions
+        'active_class_session_id': active_class_session_for_display.id if active_class_session_for_display else None
     }
     return render(request, 'teacher/teacher_dashboard.html', context)
 
@@ -496,4 +502,3 @@ def submit_attendance_code(request):
     )
 
     return JsonResponse({'status': 'success', 'message': 'Attendance code submitted successfully. Awaiting teacher validation.'})
-

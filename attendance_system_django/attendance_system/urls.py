@@ -11,6 +11,9 @@ urlpatterns = [
     path('', home, name='home'), # Home page
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', CustomLogoutView.as_view(), name='logout'),
+    path('attendance/', include('attendance.urls')),
+
+
 
     # Include app-specific URLs
     path('teacher/', include('attendance.urls')), # All teacher and student URLs handled by attendance app
