@@ -4,19 +4,107 @@
 
 {% block extra_css %}
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+    <style>
+        /* Custom Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            top: 20px; /* Adjust as needed */
+            right: 20px; /* Adjust as needed */
+            z-index: 1050; /* Ensure it's above most content */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background-color: #fff; /* White background */
+            border: 1px solid #ddd;
+            border-radius: 8px; /* Slightly more rounded */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow */
+            padding: 15px 20px; /* More padding */
+            min-width: 280px;
+            max-width: 350px;
+            font-family: 'Inter', sans-serif; /* Use a modern font */
+            color: #333;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            display: flex;
+            align-items: flex-start; /* Align icon/close button to top */
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-icon {
+            margin-right: 12px; /* Space between icon and content */
+            font-size: 1.4em; /* Larger icon */
+            line-height: 1; /* Align with text */
+        }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 600; /* Semi-bold */
+            margin-bottom: 5px;
+            color: #222;
+            font-size: 1.1em;
+        }
+
+        .toast-description {
+            font-size: 0.95em;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .toast-close-button {
+            background: none;
+            border: none;
+            font-size: 1.3em;
+            cursor: pointer;
+            color: #888;
+            margin-left: 15px; /* Space from content */
+            padding: 0;
+            line-height: 1;
+        }
+        .toast-close-button:hover {
+            color: #333;
+        }
+
+        /* Variant specific styles (matching Bootstrap-like colors for common types) */
+        .toast.info { border-left: 4px solid #0dcaf0; } /* Bootstrap info */
+        .toast.info .toast-icon { color: #0dcaf0; }
+        .toast.success { border-left: 4px solid #198754; } /* Bootstrap success */
+        .toast.success .toast-icon { color: #198754; }
+        .toast.warning { border-left: 4px solid #ffc107; } /* Bootstrap warning */
+        .toast.warning .toast-icon { color: #ffc107; }
+        .toast.error { border-left: 4px solid #dc3545; } /* Bootstrap danger */
+        .toast.error .toast-icon { color: #dc3545; }
+
+        /* Font Awesome for icons (ensure it's loaded in your base.html or here) */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+    </style>
 {% endblock %}
 
 {% block student_content %}
 <div class="space-y-8">
   <div class="text-center">
-    <h1 class="text-4xl font-headline font-bold text-primary">Your Class Calendar</h1>
-    <p class="text-lg text-muted-foreground mt-2">Upcoming and past class sessions.</p>
+    <h1 class="text-4xl font-headline font-bold text-primary">Calendário de aulas</h1>
+    <p class="text-lg text-muted-foreground mt-2">Sessões de aula futuras e anteriores.</p>
   </div>
 
   <div class="bg-card text-card-foreground rounded-lg border shadow-xl p-6">
     <div id="calendar" class="h-[600px]"></div>
   </div>
 </div>
+
+{# Container for toasts - this must be present in your HTML #}
+<div id="toast-container"></div>
+
 {% endblock student_content %}
 
 {% block extra_js %}
@@ -24,7 +112,16 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
-        const calendarEvents = JSON.parse('{{ calendar_events_json|safe }}');
+        // Safely parse JSON data:
+        // Use JSON.parse for the string, but handle potential issues if it's already an object
+        let calendarEvents;
+        try {
+            // If the template variable already renders as a JS object (unlikely but safe check)
+            calendarEvents = JSON.parse('{{ calendar_events_json|safe }}');
+        } catch (e) {
+            console.error("Error parsing calendar events JSON:", e);
+            calendarEvents = []; // Fallback to empty array
+        }
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -35,20 +132,78 @@
             },
             events: calendarEvents,
             eventClick: function(info) {
-                // Optional: Show more details about the event when clicked
+                // Determine icon based on event type or variant
+                let iconClass = 'fas fa-info-circle'; // Default info icon
+                let toastVariant = 'info'; // Default variant
+
                 showToast({
                     title: info.event.title,
-                    description: `Start: ${info.event.start.toLocaleString()}<br>End: ${info.event.end ? info.event.end.toLocaleString() : 'N/A'}`,
-                    variant: 'info',
-                    duration: 5000
+                    description: `Começa: ${info.event.start.toLocaleString()}<br>Fim: ${info.event.end ? info.event.end.toLocaleString() : 'N/A'}`,
+                    variant: toastVariant,
+                    icon: iconClass,
+                    duration: 8000 // Toast disappears after 8 seconds
                 });
             },
             eventDidMount: function(info) {
                 // Apply Tailwind-like styling to events
                 info.el.classList.add('bg-primary', 'text-primary-foreground', 'rounded-md', 'p-1', 'text-sm');
+                // You might also add a cursor pointer to indicate clickability
+                info.el.style.cursor = 'pointer';
             }
         });
         calendar.render();
     });
+
+    /**
+     * Displays a custom toast notification.
+     * @param {object} options - Configuration for the toast.
+     * @param {string} options.title - The title of the toast.
+     * @param {string} options.description - The main message of the toast (can contain HTML).
+     * @param {string} [options.variant='info'] - 'info', 'success', 'warning', 'error'.
+     * @param {string} [options.icon='fas fa-info-circle'] - Font Awesome icon class.
+     * @param {number} [options.duration=3000] - How long the toast stays visible in ms. Set to 0 for permanent.
+     */
+    function showToast({ title, description, variant = 'info', icon = 'fas fa-info-circle', duration = 3000 }) {
+        const container = document.getElementById('toast-container');
+        if (!container) {
+            console.error("Toast container #toast-container not found!");
+            return;
+        }
+
+        const toast = document.createElement('div');
+        toast.classList.add('toast', variant);
+
+        // Optional: Add an icon if Font Awesome is used
+        const iconHtml = icon ? `<div class="toast-icon"><i class="${icon}"></i></div>` : '';
+
+        toast.innerHTML = `
+            ${iconHtml}
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-description">${description}</div>
+            </div>
+            <button class="toast-close-button">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Force reflow for CSS transition to work
+        void toast.offsetWidth;
+        toast.classList.add('show');
+
+        // Close button functionality
+        toast.querySelector('.toast-close-button').addEventListener('click', function() {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => toast.remove());
+        });
+
+        // Auto-hide functionality
+        if (duration > 0) {
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, duration);
+        }
+    }
 </script>
 {% endblock extra_js %}
