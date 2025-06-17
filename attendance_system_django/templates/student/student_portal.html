@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - Real-Time Attendance System</title>
+    <title>Dashboard do Formando | SysPonto</title>
     <style>
         * {
             margin: 0;
@@ -362,44 +362,44 @@
     </style>
 </head>
 <body>
-    <div class="connection-status" id="connectionStatus">Disconnected</div>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
     
     <div class="container">
         <div class="header">
-            <h1>Student Dashboard</h1>
-            <p>Welcome, {{ request.user.get_full_name|default:request.user.username }}!</p>
+            <h1>Dashboard do Formando</h1>
+            <p>Bem-Vindo, {{ request.user.get_full_name|default:request.user.username }}!</p>
         </div>
 
         <div class="nav-links">
-            <a href="{% url 'student_enter_code' %}" class="nav-btn">
-                📝 Enter Code
+            <a href="{% url 'dashboard' %}" class="nav-btn">
+                📝 Entrar código de presença
             </a>
             <a href="{% url 'student_calendar' %}" class="nav-btn">
-                📅 Full Calendar
+                📅 Calendário das aulas
             </a>
             <a href="{% url 'home' %}" class="nav-btn">
-                🏠 Home
+                🏠 Principal
             </a>
         </div>
 
         <div class="dashboard">
             <!-- Quick Code Entry Card -->
             <div class="card">
-                <h3>Quick Code Entry</h3>
+                <h3>Digite o código</h3>
                 <div class="form-group">
-                    <label for="quickAttendanceCode">Enter attendance code for current class:</label>
+                    <label for="quickAttendanceCode">EIntroduza o código de presença para a aula atual:</label>
                     <input type="text" id="quickAttendanceCode" class="quick-code-input" placeholder="XXXXXX" maxlength="6">
                 </div>
-                <button class="btn" onclick="submitQuickAttendance()" id="quickSubmitBtn">Submit Attendance</button>
+                <button class="btn" onclick="submitQuickAttendance()" id="quickSubmitBtn">Enviar presença</button>
                 
                 <div id="quickCodeStatus"></div>
                 
                 <!-- Current Running Classes -->
                 <div id="currentClassesDisplay" style="margin-top: 1rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: #333;">Classes happening now:</h4>
+                    <h4 style="margin-bottom: 0.5rem; color: #333;">Aulas a decorrer agora:</h4>
                     <div id="currentClassesList">
                         <div style="text-align: center; color: #666; padding: 1rem;">
-                            Loading current classes...
+                            A carregar aulas atuais...
                         </div>
                     </div>
                 </div>
@@ -407,30 +407,30 @@
 
             <!-- Today's Schedule Card -->
             <div class="card">
-                <h3>Today's Schedule</h3>
+                <h3>Programação de hoje</h3>
                 <div class="class-list" id="todaySchedule">
                     <div style="text-align: center; color: #666; padding: 2rem;">
-                        Loading today's classes...
+                        A carregar as aulas de hoje...
                     </div>
                 </div>
             </div>
 
             <!-- Weekly Preview Card -->
             <div class="card">
-                <h3>This Week Preview</h3>
+                <h3>Antevisão desta semana</h3>
                 <div class="calendar-preview" id="weeklyPreview">
                     <div style="text-align: center; color: #666; padding: 2rem;">
-                        Loading weekly schedule...
+                        A carregar a programação semanal...
                     </div>
                 </div>
             </div>
 
             <!-- Attendance History Card -->
             <div class="card">
-                <h3>Recent Attendance</h3>
+                <h3>Presença recente</h3>
                 <div class="history-list" id="attendanceHistory">
                     <div style="text-align: center; color: #666; padding: 2rem;">
-                        Loading attendance history...
+                        Carregando histórico de presença...
                     </div>
                 </div>
             </div>
@@ -496,18 +496,18 @@
             const submitBtn = document.getElementById('quickSubmitBtn');
 
             if (!code) {
-                showStudentStatus('error', 'Please enter the attendance code.');
+                showStudentStatus('error', 'Por favor, introduza o código de presença.');
                 return;
             }
             
             if (code.length !== 6) {
-                showStudentStatus('error', 'Attendance code must be 6 characters long.');
+                showStudentStatus('error', 'O código de presença deve ter 6 caracteres.');
                 return;
             }
 
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
+                submitBtn.textContent = 'Enviando...';
             }
 
             // Simulate geolocation and IP for attendance
@@ -529,21 +529,21 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    showStudentStatus('success', data.message || 'Attendance submitted successfully!');
+                    showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
                     if (codeInput) codeInput.value = '';
                     refreshAttendanceHistory();
                 } else {
-                    showStudentStatus('error', data.message || 'Unknown error');
+                    showStudentStatus('error', data.message || 'Erro desconhecido.');
                 }
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                showStudentStatus('error', 'An error occurred while submitting attendance.');
+                console.error('Erro de pesquisa:', error);
+                showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
             })
             .finally(() => {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Attendance';
+                    submitBtn.textContent = 'Enviar presença';
                 }
             });
         }
@@ -553,8 +553,8 @@
         function updateConnectionStatus(connected) {
             const statusEl = document.getElementById('connectionStatus');
             if (statusEl) {
-                statusEl.textContent = connected ? 'Connected' : 'Disconnected';
-                statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+                statusEl.textContent = connected ? 'Conectado' : 'Disconectado';
+                statusEl.className = 'connection-status ' + (connected ? 'conectado' : 'disconectado');
             }
         }
 
@@ -617,7 +617,7 @@
                     scheduleContainer.appendChild(classElement);
                 });
             } else {
-                scheduleContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No classes scheduled for today.</div>';
+                scheduleContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Não há aulas marcadas para hoje.</div>';
             }
         }
 
@@ -639,13 +639,13 @@
                     classElement.className = 'class-item current';
                     classElement.innerHTML = 
                         '<div class="class-info">' +
-                            '<div class="class-name">🔴 ' + (classItem.course_name || 'Unknown Course') + '</div>' +
+                            '<div class="class-name">🔴 ' + (classItem.course_name || 'Curso Desconhecido') + '</div>' +
                             '<div class="class-time">Active until ' + formatTime(new Date(classItem.end_datetime)) + '</div>' +
                         '</div>';
                     currentContainer.appendChild(classElement);
                 });
             } else {
-                currentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">No classes running right now.</div>';
+                currentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">Não há aulas a decorrer no momento.</div>';
             }
         }
 
@@ -680,7 +680,7 @@
                     weeklyContainer.appendChild(dayElement);
                 });
             } else {
-                weeklyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No classes this week.</div>';
+                weeklyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Não há aulas esta semana.</div>';
             }
         }
 
@@ -695,11 +695,11 @@
                     historyElement.className = 'history-item';
                     
                     const status = record.is_present ? 'success' : 'warning';
-                    const statusText = record.is_present ? 'Present' : 'Pending';
+                    const statusText = record.is_present ? 'Presente' : 'Pendente';
                     
                     historyElement.innerHTML = 
                         '<div>' +
-                            '<div class="class-name">' + (record.course_name || 'Unknown Course') + '</div>' +
+                            '<div class="class-name">' + (record.course_name || 'Curso Desconhecido') + '</div>' +
                             '<div class="class-time">' + formatDateTime(new Date(record.timestamp)) + '</div>' +
                         '</div>' +
                         '<div class="status ' + status + '">' + statusText + '</div>';
@@ -707,7 +707,7 @@
                     historyContainer.appendChild(historyElement);
                 });
             } else {
-                historyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No attendance records found.</div>';
+                historyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhum registo de presença encontrado.</div>';
             }
         }
 
@@ -731,35 +731,35 @@
             attendanceSocket = new WebSocket(wsPath);
 
             attendanceSocket.onopen = function(e) {
-                console.log('Student WebSocket connected');
+                console.log('Aluno ligado via WebSocket');
                 updateConnectionStatus(true);
             };
 
             attendanceSocket.onmessage = function(e) {
                 const data = JSON.parse(e.data);
-                console.log('Student WebSocket message:', data);
+                console.log('Mensagem do aluno WebSocket:', data);
                 
                 if (data.context && data.context.type === 'attendance_validated') {
-                    showStudentStatus('success', 'Your attendance for ' + data.context.class_name + ' has been validated!');
+                    showStudentStatus('success', 'YA sua presença para ' + data.context.class_name + ' foi validado!');
                     refreshAttendanceHistory();
                 }
             };
 
             attendanceSocket.onclose = function(e) {
-                console.log('Student WebSocket disconnected');
+                console.log('WebSocket do aluno desligado');
                 updateConnectionStatus(false);
             };
 
             attendanceSocket.onerror = function(e) {
-                console.error('Student WebSocket error:', e);
+                console.error('Erro do Websocket do aluno:', e);
                 updateConnectionStatus(false);
             };
         }
 
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Student Dashboard initialized');
-            console.log('User role:', userRole);
+            console.log('Painel do Aluno inicializado');
+            console.log('Função do utilizador:', userRole);
 
             updateConnectionStatus(false);
 

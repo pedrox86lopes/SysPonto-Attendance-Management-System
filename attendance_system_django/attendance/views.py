@@ -752,27 +752,60 @@ def get_session_submissions(request):
 
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
+@require_GET
+def api_student_attendance_history(request):
+    """
+    API endpoint to get student's attendance history
+    """
+    try:
+        limit = int(request.GET.get('limit', 10))
+        
+        attendance_history = AttendanceRecord.objects.filter(
+            student=request.user
+        ).select_related('class_session__course').order_by('-timestamp')[:limit]
+        
+        history_data = [{
+            'id': str(record.id),
+            'course_name': record.class_session.course.name,
+            'timestamp': record.timestamp.isoformat(),
+            'is_present': record.is_present,
+            'status': 'Present' if record.is_present else 'Pending',
+            'session_date': record.class_session.date.isoformat()
+        } for record in attendance_history]
+        
+        return JsonResponse({
+            'status': 'success',
+            'attendance_history': history_data
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+@login_required(login_url='/login/')
+@user_passes_test(is_student, login_url='/login/')
 def student_dashboard_unified(request):
     """
     Unified student dashboard with real-time features
     """
     # Get user's enrolled courses
     enrolled_courses = Course.objects.filter(
-        classsession__attendancerecord__student=request.user
+        course_enrollments__student=request.user
     ).distinct()
     
     # Get today's classes
     today = timezone.now().date()
     today_sessions = ClassSession.objects.filter(
-        course__in=enrolled_courses,
+        course__course_enrollments__student=request.user,
         date=today
     ).select_related('course').order_by('start_time')
     
     # Get this week's classes
     week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=7)
+    week_end = week_start + timedelta(days=6)  # Changed from +7 to +6 for current week
     weekly_sessions = ClassSession.objects.filter(
-        course__in=enrolled_courses,
+        course__course_enrollments__student=request.user,
         date__range=[week_start, week_end]
     ).select_related('course').order_by('date', 'start_time')
     
@@ -784,53 +817,61 @@ def student_dashboard_unified(request):
     # Find current running classes
     now = timezone.now()
     current_sessions = ClassSession.objects.filter(
-        course__in=enrolled_courses,
+        course__course_enrollments__student=request.user,
         date=today,
         start_time__lte=now.time(),
         end_time__gte=now.time()
     ).select_related('course')
     
-    # Prepare JSON data for frontend
-    today_classes_json = json.dumps([{
-        'id': session.id,
-        'course_name': session.course.name,
-        'start_datetime': timezone.make_aware(
+    # Prepare JSON data for frontend - using the exact same format as calendar
+    def format_session_for_json(session):
+        start_datetime = timezone.make_aware(
             datetime.combine(session.date, session.start_time)
-        ).isoformat(),
-        'end_datetime': timezone.make_aware(
+        )
+        end_datetime = timezone.make_aware(
             datetime.combine(session.date, session.end_time)
-        ).isoformat(),
-    } for session in today_sessions])
+        )
+        
+        return {
+            'id': session.id,
+            'title': session.course.name,  # Add title for calendar compatibility
+            'course_name': session.course.name,
+            'start_datetime': start_datetime.isoformat(),
+            'end_datetime': end_datetime.isoformat(),
+            'start': start_datetime.isoformat(),  # Add for calendar compatibility
+            'end': end_datetime.isoformat(),      # Add for calendar compatibility
+        }
     
-    weekly_classes_json = json.dumps([{
-        'id': session.id,
-        'course_name': session.course.name,
-        'start_datetime': timezone.make_aware(
-            datetime.combine(session.date, session.start_time)
-        ).isoformat(),
-        'end_datetime': timezone.make_aware(
-            datetime.combine(session.date, session.end_time)
-        ).isoformat(),
-    } for session in weekly_sessions])
+    today_classes_json = json.dumps([
+        format_session_for_json(session) for session in today_sessions
+    ])
+    
+    weekly_classes_json = json.dumps([
+        format_session_for_json(session) for session in weekly_sessions
+    ])
     
     attendance_history_json = json.dumps([{
         'id': str(record.id),
         'course_name': record.class_session.course.name,
         'timestamp': record.timestamp.isoformat(),
         'is_present': record.is_present,
-        'status': 'Present' if record.is_present else 'Pending'
+        'status': 'Present' if record.is_present else 'Pending',
+        'session_date': record.class_session.date.isoformat()
     } for record in attendance_history])
     
-    current_classes_json = json.dumps([{
-        'id': session.id,
-        'course_name': session.course.name,
-        'start_datetime': timezone.make_aware(
-            datetime.combine(session.date, session.start_time)
-        ).isoformat(),
-        'end_datetime': timezone.make_aware(
-            datetime.combine(session.date, session.end_time)
-        ).isoformat(),
-    } for session in current_sessions])
+    current_classes_json = json.dumps([
+        format_session_for_json(session) for session in current_sessions
+    ])
+    
+    # Calendar events for the calendar page (if this view is also used for calendar)
+    calendar_events = []
+    for session in weekly_sessions:
+        calendar_events.append({
+            'title': session.course.name,
+            'start': f"{session.date.isoformat()}T{session.start_time.isoformat()}",
+            'end': f"{session.date.isoformat()}T{session.end_time.isoformat()}",
+            'id': session.id,
+        })
     
     context = {
         'enrolled_courses': enrolled_courses,
@@ -842,6 +883,7 @@ def student_dashboard_unified(request):
         'weekly_classes_json': weekly_classes_json,
         'attendance_history_json': attendance_history_json,
         'current_classes_json': current_classes_json,
+        'calendar_events_json': json.dumps(calendar_events),  # For calendar compatibility
     }
     
     return render(request, 'student/student_dashboard_unified.html', context)
@@ -855,13 +897,10 @@ def api_student_current_classes(request):
     API endpoint to get currently running classes for the student
     """
     try:
-        enrolled_courses = Course.objects.filter(
-            classsession__attendancerecord__student=request.user
-        ).distinct()
-        
+        # FIXED: Use correct relationship through Enrollment
         now = timezone.now()
         current_sessions = ClassSession.objects.filter(
-            course__in=enrolled_courses,
+            course__course_enrollments__student=request.user,  # ✅ CORRECT
             date=now.date(),
             start_time__lte=now.time(),
             end_time__gte=now.time()
@@ -896,13 +935,10 @@ def api_student_today_classes(request):
     API endpoint to get today's classes for the student
     """
     try:
-        enrolled_courses = Course.objects.filter(
-            classsession__attendancerecord__student=request.user
-        ).distinct()
-        
+        # FIXED: Use correct relationship through Enrollment
         today = timezone.now().date()
         today_sessions = ClassSession.objects.filter(
-            course__in=enrolled_courses,
+            course__course_enrollments__student=request.user,  # ✅ CORRECT
             date=today
         ).select_related('course').order_by('start_time')
         
@@ -935,16 +971,13 @@ def api_student_weekly_classes(request):
     API endpoint to get this week's classes for the student
     """
     try:
-        enrolled_courses = Course.objects.filter(
-            classsession__attendancerecord__student=request.user
-        ).distinct()
-        
+        # FIXED: Use correct relationship through Enrollment
         today = timezone.now().date()
         week_start = today - timedelta(days=today.weekday())
-        week_end = week_start + timedelta(days=7)
+        week_end = week_start + timedelta(days=6)  # Current week only
         
         weekly_sessions = ClassSession.objects.filter(
-            course__in=enrolled_courses,
+            course__course_enrollments__student=request.user,  # ✅ CORRECT
             date__range=[week_start, week_end]
         ).select_related('course').order_by('date', 'start_time')
         
@@ -962,39 +995,6 @@ def api_student_weekly_classes(request):
         return JsonResponse({
             'status': 'success',
             'weekly_classes': weekly_classes
-        })
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-@login_required(login_url='/login/')
-@user_passes_test(is_student, login_url='/login/')
-@require_GET
-def api_student_attendance_history(request):
-    """
-    API endpoint to get student's attendance history
-    """
-    try:
-        limit = int(request.GET.get('limit', 10))
-        
-        attendance_history = AttendanceRecord.objects.filter(
-            student=request.user
-        ).select_related('class_session__course').order_by('-timestamp')[:limit]
-        
-        history_data = [{
-            'id': str(record.id),
-            'course_name': record.class_session.course.name,
-            'timestamp': record.timestamp.isoformat(),
-            'is_present': record.is_present,
-            'status': 'Present' if record.is_present else 'Pending',
-            'session_date': record.class_session.date.isoformat()
-        } for record in attendance_history]
-        
-        return JsonResponse({
-            'status': 'success',
-            'attendance_history': history_data
         })
     except Exception as e:
         return JsonResponse({

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Attendance System Dashboard</title>
+    <title>Dashboard | Entrada de códigos</title>
     <style>
         * {
             margin: 0;
@@ -358,18 +358,18 @@
     </style>
 </head>
 <body>
-    <div class="connection-status" id="connectionStatus">Disconnected</div>
+    <div class="connection-status" id="connectionStatus">Disconectado</div>
     
     <div class="container">
         <div class="header">
-            <h1>Real-Time Attendance System</h1>
-            <p>Welcome, {{ request.user.get_full_name|default:request.user.username }}!</p>
+            <h1>SysPonto | Gera códigos</h1>
+            <p>Bem-vindo, {{ request.user.get_full_name|default:request.user.username }}!</p>
         </div>
 
         {% if not request.user.is_authenticated %}
         <div class="role-selector" id="roleSelector">
-            <button class="role-btn active" onclick="switchRole('teacher')">Teacher Portal</button>
-            <button class="role-btn" onclick="switchRole('student')">Student Portal</button>
+            <button class="role-btn active" onclick="switchRole('teacher')">Dashboard do Formador</button>
+            <button class="role-btn" onclick="switchRole('student')">Dashboard do Formando</button>
         </div>
         {% endif %}
 
@@ -377,9 +377,9 @@
             {% if request.user.role == 'teacher' %}
             <div class="dashboard">
                 <div class="card">
-                    <h3>Generate Attendance Code</h3>
+                    <h3>Gerar código de presença</h3>
                     <div class="form-group">
-                        <label for="sessionSelect">Select Class Session:</label>
+                        <label for="sessionSelect">Selecione a sessão da aula:</label>
                         <select id="sessionSelect">
                             {% for session in teacher_class_sessions_today %}
                                 <option 
@@ -390,37 +390,34 @@
                                     {{ session.course.name }} - {{ session.start_time|time:'H:i' }} to {{ session.end_time|time:'H:i' }}
                                 </option>
                             {% empty %}
-                                <option value="">No classes today</option>
+                                <option value="">Não há aulas hoje.</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="duration">Code Duration (minutes):</label>
-                        <input type="number" id="duration" value="10" min="1" max="60">
-                    </div>
-                    <button class="btn" onclick="generateCode()" id="generateCodeBtn">Generate Code</button>
+
+                    <button class="btn" onclick="generateCode()" id="generateCodeBtn">Gerar código</button>
                     
                     <div id="activeCodeDisplay" style="display: none;">
-                        <h4>Current Code for <span id="currentCodeCourseName"></span>:</h4>
+                        <h4>Último código gerado: <span id="currentCodeCourseName"></span>:</h4>
                         <div class="generated-code-text" id="codeDisplay"></div>
-                        <div class="timer" id="timer">Time remaining: 10:00</div>
+                        <div class="timer" id="timer">Duração: 10:00</div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>Live Attendance Submissions</h3>
+                    <h3>Envios de Presença em Direto</h3>
                     <div class="status success" id="submissionStatus" style="display: none;">
-                        New submission received!
+                        Novo envio recebido!
                     </div>
                     <div class="submissions-list" id="submissionsList">
                         <div style="text-align: center; color: #666; padding: 2rem;">
-                            Select a session to see submissions.
+                            Selecione uma sessão para ver os envios.
                         </div>
                     </div>
                 </div>
             </div>
             {% else %}
-            <p>You do not have teacher privileges or no active classes today.</p>
+            <p>YNão tem privilégios de professor ou nenhuma aula ativa hoje.</p>
             {% endif %}
         </div>
 
@@ -428,27 +425,27 @@
             {% if request.user.role == 'student' %}
             <div class="dashboard">
                 <div class="card">
-                    <h3>Enter Attendance Code</h3>
+                    <h3>Introduza o código de presença</h3>
                     <div class="form-group">
-                        <label for="attendanceCode">Attendance Code:</label>
+                        <label for="attendanceCode">Código de Presença:</label>
                         <input type="text" id="attendanceCode" placeholder="Enter 6-digit code" maxlength="6" style="text-transform: uppercase;">
                     </div>
-                    <button class="btn" onclick="submitAttendance()" id="submitAttendanceBtn">Submit Attendance</button>
+                    <button class="btn" onclick="submitAttendance()" id="submitAttendanceBtn">Enviar presença</button>
                     
                     <div id="studentStatus"></div>
                 </div>
 
                 <div class="card">
-                    <h3>Your Attendance History</h3>
+                    <h3>O seu histórico de presença</h3>
                     <div class="submissions-list" id="studentHistory">
                         <div style="text-align: center; color: #666; padding: 2rem;">
-                            No attendance records found.
+                            Nenhum registo de presença encontrado.
                         </div>
                     </div>
                 </div>
             </div>
             {% else %}
-            <p>You do not have student privileges.</p>
+            <p>Não tem privilégios de estudante.</p>
             {% endif %}
         </div>
     </div>
@@ -514,23 +511,22 @@
             console.log('API_URLS:', API_URLS);
             
             if (!API_URLS.generateCode) {
-                alert('API URL not available. Please refresh the page.');
+                alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
             
             const sessionSelect = document.getElementById('sessionSelect');
             const classSessionId = sessionSelect ? sessionSelect.value : '';
-            const duration = document.getElementById('duration') ? document.getElementById('duration').value : '10';
 
             if (!classSessionId) {
-                alert('Please select a class session.');
+                alert('Selecione uma sessão de aula.');
                 return;
             }
 
             const generateBtn = document.getElementById('generateCodeBtn');
             if (generateBtn) {
                 generateBtn.disabled = true;
-                generateBtn.textContent = 'Generating...';
+                generateBtn.textContent = 'Gerando...';
             }
 
             fetch(API_URLS.generateCode, {
@@ -540,29 +536,28 @@
                     'X-CSRFToken': CSRF_TOKEN
                 },
                 body: new URLSearchParams({
-                    'class_session_id': classSessionId,
-                    'duration_minutes': duration
+                    'class_session_id': classSessionId
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    updateCodeDisplay(data.code, data.expires_at, 'active');
-                    alert('Code generated successfully!');
+                    updateCodeDisplay(data.code, data.expires_at, 'Ativo');
+                    alert('Código gerado com sucesso!');
                     initWebSocket(classSessionId);
                     loadSubmissionsForSession(classSessionId);
                 } else {
-                    alert('Error generating code: ' + (data.message || 'Unknown error'));
+                    alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
                 }
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                alert('An error occurred while generating the code.');
+                console.error('Erro de pesquisa', error);
+                alert('Ocorreu um erro ao gerar o código.');
             })
             .finally(() => {
                 if (generateBtn) {
                     generateBtn.disabled = false;
-                    generateBtn.textContent = 'Generate Code';
+                    generateBtn.textContent = 'Gerar código';
                 }
             });
         }
@@ -573,7 +568,7 @@
             if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
             
             const submissionsList = document.getElementById('submissionsList');
-            if (submissionsList) submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No active attendance session</div>';
+            if (submissionsList) submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma sessão de presença ativa</div>';
             
             updateConnectionStatus(false);
             if (attendanceSocket) attendanceSocket.close();
@@ -584,7 +579,7 @@
             console.log('submitAttendance called');
             
             if (!API_URLS.submitAttendance) {
-                alert('API URL not available. Please refresh the page.');
+                alert('URL do API não disponível. Por favor, atualize a página.');
                 return;
             }
             
@@ -593,18 +588,18 @@
             const submitBtn = document.getElementById('submitAttendanceBtn');
 
             if (!code) {
-                showStudentStatus('error', 'Please enter the attendance code.');
+                showStudentStatus('error', 'Por favor, introduza o código de presença.');
                 return;
             }
             
             if (code.length !== 6) {
-                showStudentStatus('error', 'Attendance code must be 6 characters long.');
+                showStudentStatus('error', 'O código de presença deve ter 6 caracteres.');
                 return;
             }
 
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
+                submitBtn.textContent = 'Enviando...';
             }
 
             fetch(API_URLS.submitAttendance, {
@@ -620,27 +615,27 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    showStudentStatus('success', data.message || 'Attendance submitted successfully!');
+                    showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
                     if (attendanceCodeInput) attendanceCodeInput.value = '';
                 } else {
-                    showStudentStatus('error', data.message || 'Unknown error');
+                    showStudentStatus('error', data.message || 'Erro desconhecido.');
                 }
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-                showStudentStatus('error', 'An error occurred while submitting attendance.');
+                showStudentStatus('error', 'AOcorreu um erro ao enviar a presença.');
             })
             .finally(() => {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Attendance';
+                    submitBtn.textContent = 'Enviar presença';
                 }
             });
         }
 
         function runAiValidation(recordId, classSessionId) {
             if (!API_URLS.runAiValidation) {
-                alert('API URL not available. Please refresh the page.');
+                alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
             
@@ -658,20 +653,20 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('AI validation started!');
+                    alert('A validação da IA ​​começou!');
                 } else {
-                    alert('Error running AI: ' + (data.message || 'Unknown error'));
+                    alert('Erro ao executar o AI: ' + (data.message || 'Erro desconhecido'));
                 }
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                alert('An error occurred while running AI validation.');
+                console.error('Erro de pesquisa:', error);
+                alert('Ocorreu um erro ao executar a validação da IA.');
             });
         }
 
         function validateAttendance(recordId, classSessionId) {
             if (!API_URLS.validateAttendance) {
-                alert('API URL not available. Please refresh the page.');
+                alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
             
@@ -689,22 +684,22 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('Attendance marked as Present!');
+                    alert('Presença marcada como Presente!');
                     const submissionItem = document.getElementById('submission-' + recordId);
                     if (submissionItem) {
                         const validateBtn = submissionItem.querySelector('.btn-small.validate');
                         if (validateBtn) {
                             validateBtn.disabled = true;
-                            validateBtn.textContent = 'Present';
+                            validateBtn.textContent = 'Presente';
                         }
                     }
                 } else {
-                    alert('Error validating attendance: ' + (data.message || 'Unknown error'));
+                    alert('Erro ao validar a presença: ' + (data.message || 'Erro desconhecido'));
                 }
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                alert('An error occurred while validating attendance.');
+                console.error('Erro de pesquisa:', error);
+                alert('Ocorreu um erro ao validar a presença.');
             });
         }
 
@@ -724,8 +719,8 @@
         function updateConnectionStatus(connected) {
             const statusEl = document.getElementById('connectionStatus');
             if (statusEl) {
-                statusEl.textContent = connected ? 'Connected' : 'Disconnected';
-                statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+                statusEl.textContent = connected ? 'Conectado' : 'Disconectado';
+                statusEl.className = 'connection-status ' + (connected ? 'conectado' : 'disconectado');
             }
         }
 
@@ -769,7 +764,7 @@
                 const seconds = Math.floor((timeLeft % 60000) / 1000);
 
                 if (timerElement) {
-                    timerElement.textContent = 'Time remaining: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                    timerElement.textContent = 'Tempo restante: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
                 }
             }, 1000);
         }
@@ -812,11 +807,11 @@
             const submissionsList = document.getElementById('submissionsList');
             if (!submissionsList) return;
             if (!API_URLS.getSessionSubmissions) {
-                submissionsList.innerHTML = '<div class="status error">API URL not available</div>';
+                submissionsList.innerHTML = '<div class="status error">URL da API não disponível</div>';
                 return;
             }
 
-            submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Loading submissions...</div>';
+            submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Carregando envios...</div>';
             currentClassSessionId = sessionId;
 
             fetch(API_URLS.getSessionSubmissions + '?class_session_id=' + sessionId)
@@ -829,15 +824,15 @@
                             addSubmission(submission);
                         });
                     } else {
-                        submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No submissions yet for this session.</div>';
+                        submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma submissão ainda para esta sessão.</div>';
                     }
                 } else {
-                    submissionsList.innerHTML = '<div class="status error">Error loading submissions: ' + (data.message || 'Unknown error') + '</div>';
+                    submissionsList.innerHTML = '<div class="status error">Erro ao carregar envios: ' + (data.message || 'Erro desconhecido') + '</div>';
                 }
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                submissionsList.innerHTML = '<div class="status error">Failed to fetch submissions.</div>';
+                console.error('Erro de pesquisa:', error);
+                submissionsList.innerHTML = '<div class="status error">Falha ao pesquisar envios.</div>';
             });
         }
 
