@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class ClassSessionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.class_session_id = self.scope['url_route']['kwargs']['class_session_id']
-        self.class_session_group_name = f'class_session_{self.class_session_id}'
+        self.class_session_group_name = f'class_session_{self.class_session_id}_notifications'
 
         # Join class session group
         await self.channel_layer.group_add(
@@ -21,10 +21,10 @@ class ClassSessionConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-    # Receive message from WebSocket
+    # Receive message from WebSocket (from client)
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        message = text_data_json.get('message', '')
 
         # Send message to class session group
         await self.channel_layer.group_send(
@@ -35,11 +35,59 @@ class ClassSessionConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    # Receive message from class session group
+    # Receive message from class session group (from backend via send_group_notification)
     async def class_session_message(self, event):
         message = event['message']
+        context = event.get('context', {})
 
-        # Send message to WebSocket
+        # Send message to WebSocket client
         await self.send(text_data=json.dumps({
-            'message': message
+            'type': 'class_session_message',
+            'message': message,
+            'context': context
+        }))
+
+    # Handle specific message types from your views
+    async def student_submitted(self, event):
+        """Handle when a student submits attendance"""
+        await self.send(text_data=json.dumps({
+            'type': 'class_session_message',
+            'message': event['message'],
+            'context': {
+                'type': 'student_submitted',
+                **event['context']
+            }
+        }))
+
+    async def ai_result_updated_for_teacher(self, event):
+        """Handle AI validation results"""
+        await self.send(text_data=json.dumps({
+            'type': 'class_session_message', 
+            'message': event['message'],
+            'context': {
+                'type': 'ai_result_updated_for_teacher',
+                **event['context']
+            }
+        }))
+
+    async def code_generated_for_teacher(self, event):
+        """Handle when a new attendance code is generated"""
+        await self.send(text_data=json.dumps({
+            'type': 'class_session_message',
+            'message': event['message'],
+            'context': {
+                'type': 'code_generated_for_teacher',
+                **event['context']
+            }
+        }))
+
+    async def attendance_validated(self, event):
+        """Handle when attendance is validated by teacher"""
+        await self.send(text_data=json.dumps({
+            'type': 'class_session_message',
+            'message': event['message'],
+            'context': {
+                'type': 'attendance_validated',
+                **event['context']
+            }
         }))

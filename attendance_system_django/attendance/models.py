@@ -5,7 +5,7 @@ from core.models import User
 from courses.models import ClassSession, Course
 from django.utils import timezone
 import uuid
-import datetime
+from datetime import timedelta
 
 class AttendanceCode(models.Model):
     class_session = models.OneToOneField(ClassSession, on_delete=models.CASCADE, related_name='attendance_code')

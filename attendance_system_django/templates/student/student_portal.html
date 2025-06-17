@@ -1,142 +1,788 @@
-{% extends 'base.html' %}
+
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Real-Time Attendance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}Student Dashboard{% endblock %}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
 
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-lg-10 mx-auto"> {# Changed to col-lg-10 mx-auto for wider content #}
-            <h1 class="mb-4 text-center text-primary">Welcome, {{ user.username }}!</h1>
-            <p class="text-center text-muted">Your personalized hub for classes and attendance.</p>
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 1200px;
+            width: 95%;
+            margin: 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+            color: white;
+            text-decoration: none;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0.5rem 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .class-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .class-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.3s ease;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .class-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .class-item.current {
+            background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+            border: 2px solid #28a745;
+        }
+
+        .class-item.upcoming {
+            background: linear-gradient(135deg, #fff3cd, #fdf6e3);
+            border: 2px solid #ffc107;
+        }
+
+        .class-item.past {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .class-info {
+            flex-grow: 1;
+        }
+
+        .class-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .class-time {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+
+        .class-status {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-weight: 500;
+        }
+
+        .class-status.current {
+            background: #28a745;
+            color: white;
+        }
+
+        .class-status.upcoming {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .class-status.past {
+            background: #6c757d;
+            color: white;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.3s ease;
+        }
+
+        .history-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .quick-code-input {
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .calendar-preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .calendar-day {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .calendar-day:last-child {
+            border-bottom: none;
+        }
+
+        .day-classes {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
             
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .class-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Disconnected</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Student Dashboard</h1>
+            <p>Welcome, {{ request.user.get_full_name|default:request.user.username }}!</p>
+        </div>
 
-            {# Alerts for quick actions/status #}
-            {% if today_sessions %}
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                You have **{{ today_sessions|length }} class{{ today_sessions|length|pluralize }}** today! <a href="{% url 'student_enter_code' %}" class="alert-link">Enter an attendance code</a>.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% elif next_upcoming_session %}
-            <div class="alert alert-secondary alert-dismissible fade show" role="alert">
-                Your next class is **{{ next_upcoming_session.course.name }}** on **{{ next_upcoming_session.date|date:"F jS" }}** at **{{ next_upcoming_session.start_time|time:"H:i" }}**.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% else %}
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                No upcoming classes found. Please check your enrollments or contact administration.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endif %}
+        <div class="nav-links">
+            <a href="{% url 'student_enter_code' %}" class="nav-btn">
+                📝 Enter Code
+            </a>
+            <a href="{% url 'student_calendar' %}" class="nav-btn">
+                📅 Full Calendar
+            </a>
+            <a href="{% url 'home' %}" class="nav-btn">
+                🏠 Home
+            </a>
+        </div>
 
-
-            <div class="row mt-4">
-                {# Enrolled Courses Card #}
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">Your Enrolled Courses</h5>
-                        </div>
-                        <div class="card-body">
-                            {% if enrolled_courses %}
-                            <ul class="list-group list-group-flush">
-                                {% for course in enrolled_courses %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>{{ course.name }}</strong>
-                                        <small class="text-muted"> ({{ course.code }})</small><br>
-                                        <small class="text-muted">Taught by:
-                                            {% for teacher in course.teachers.all %}
-                                                {{ teacher.username }}{% if not forloop.last %}, {% endif %}
-                                            {% empty %}
-                                                N/A
-                                            {% endfor %}
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-secondary rounded-pill">{{ course.classsession_set.count }} Classes</span>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}
-                            <p class="card-text text-muted">You are not currently enrolled in any courses. Please contact administration.</p>
-                            {% endif %}
-                        </div>
-                    </div>
+        <div class="dashboard">
+            <!-- Quick Code Entry Card -->
+            <div class="card">
+                <h3>Quick Code Entry</h3>
+                <div class="form-group">
+                    <label for="quickAttendanceCode">Enter attendance code for current class:</label>
+                    <input type="text" id="quickAttendanceCode" class="quick-code-input" placeholder="XXXXXX" maxlength="6">
                 </div>
-
-                {# Today's Classes Card #}
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">Today's Classes</h5>
-                        </div>
-                        <div class="card-body">
-                            {% if today_sessions %}
-                            <ul class="list-group list-group-flush">
-                                {% for session in today_sessions|dictsort:"start_time" %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>{{ session.course.name }}</strong>
-                                        <small class="text-muted"> ({{ session.course.code }})</small><br>
-                                        <span class="text-secondary">{{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}</span>
-                                    </div>
-                                    <a href="{% url 'student_enter_code' %}" class="btn btn-sm btn-outline-success">Enter Code</a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}
-                            <p class="card-text text-muted">You have no classes scheduled for today that haven't started yet. Enjoy your day!</p>
-                            {% endif %}
+                <button class="btn" onclick="submitQuickAttendance()" id="quickSubmitBtn">Submit Attendance</button>
+                
+                <div id="quickCodeStatus"></div>
+                
+                <!-- Current Running Classes -->
+                <div id="currentClassesDisplay" style="margin-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: #333;">Classes happening now:</h4>
+                    <div id="currentClassesList">
+                        <div style="text-align: center; color: #666; padding: 1rem;">
+                            Loading current classes...
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                {# Next Upcoming Class Card #}
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0">Next Upcoming Class</h5>
-                        </div>
-                        <div class="card-body">
-                            {% if next_upcoming_session %}
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <strong>{{ next_upcoming_session.course.name }}</strong>
-                                    <small class="text-muted"> ({{ next_upcoming_session.course.code }})</small><br>
-                                    <p class="mb-1 text-muted">{{ next_upcoming_session.date|date:"l, F jS, Y" }}</p>
-                                    <p class="mb-0 text-secondary">{{ next_upcoming_session.start_time|time:"H:i" }} - {{ next_upcoming_session.end_time|time:"H:i" }}</p>
-                                </li>
-                            </ul>
-                            {% else %}
-                            <p class="card-text text-muted">No upcoming classes found beyond today.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                {# Full Schedule / Actions Card #}
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="mb-0">Quick Actions</h5>
-                        </div>
-                        <div class="card-body d-flex flex-column justify-content-center">
-                            <p class="card-text">View all your classes on a comprehensive calendar.</p>
-                            <a href="{% url 'student_calendar' %}" class="btn btn-primary btn-lg mb-3">
-                                <i class="fas fa-calendar-alt me-2"></i> Go to Full Calendar
-                            </a>
-                            <p class="card-text">Submit an attendance code for your current class.</p>
-                            <a href="{% url 'student_enter_code' %}" class="btn btn-outline-dark btn-lg">
-                                <i class="fas fa-qrcode me-2"></i> Enter Attendance Code
-                            </a>
-                        </div>
+            <!-- Today's Schedule Card -->
+            <div class="card">
+                <h3>Today's Schedule</h3>
+                <div class="class-list" id="todaySchedule">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        Loading today's classes...
                     </div>
                 </div>
             </div>
 
+            <!-- Weekly Preview Card -->
+            <div class="card">
+                <h3>This Week Preview</h3>
+                <div class="calendar-preview" id="weeklyPreview">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        Loading weekly schedule...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance History Card -->
+            <div class="card">
+                <h3>Recent Attendance</h3>
+                <div class="history-list" id="attendanceHistory">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        Loading attendance history...
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Django data injection -->
+    <script id="django-data" type="application/json">
+    {
+        "userRole": "student",
+        "csrfToken": "{{ csrf_token }}",
+        "isAuthenticated": {{ request.user.is_authenticated|yesno:"true,false" }},
+        "todayClasses": {{ today_classes_json|default:"[]"|safe }},
+        "weeklyClasses": {{ weekly_classes_json|default:"[]"|safe }},
+        "attendanceHistory": {{ attendance_history_json|default:"[]"|safe }},
+        "currentClasses": {{ current_classes_json|default:"[]"|safe }},
+        "apiUrls": {
+            "submitAttendance": "{% url 'submit_attendance_code' %}",
+            "getCurrentClasses": "/api/student/current-classes/",
+            "getTodayClasses": "/api/student/today-classes/",
+            "getWeeklyClasses": "/api/student/weekly-classes/",
+            "getAttendanceHistory": "/api/student/attendance-history/"
+        }
+    }
+    </script>
+
+    <script>
+        // Parse Django data safely
+        let djangoData;
+        try {
+            djangoData = JSON.parse(document.getElementById('django-data').textContent);
+        } catch (e) {
+            console.error('Error parsing Django data:', e);
+            djangoData = {
+                userRole: "student",
+                csrfToken: "",
+                isAuthenticated: false,
+                todayClasses: [],
+                weeklyClasses: [],
+                attendanceHistory: [],
+                currentClasses: [],
+                apiUrls: {}
+            };
+        }
+        
+        // Global variables
+        let attendanceSocket = null;
+        const userRole = djangoData.userRole || "student";
+        const CSRF_TOKEN = djangoData.csrfToken || "";
+        const API_URLS = djangoData.apiUrls || {};
+
+        // Extract data
+        const todayClasses = djangoData.todayClasses || [];
+        const weeklyClasses = djangoData.weeklyClasses || [];
+        const attendanceHistory = djangoData.attendanceHistory || [];
+        const currentClasses = djangoData.currentClasses || [];
+
+        // ===== GLOBAL FUNCTIONS =====
+        
+        function submitQuickAttendance() {
+            const codeInput = document.getElementById('quickAttendanceCode');
+            const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
+            const submitBtn = document.getElementById('quickSubmitBtn');
+
+            if (!code) {
+                showStudentStatus('error', 'Please enter the attendance code.');
+                return;
+            }
+            
+            if (code.length !== 6) {
+                showStudentStatus('error', 'Attendance code must be 6 characters long.');
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+
+            // Simulate geolocation and IP for attendance
+            const simulatedData = generateAttendanceData();
+
+            fetch(API_URLS.submitAttendance || '/api/submit-attendance/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'attendance_code': code,
+                    'simulated_latitude': simulatedData.latitude,
+                    'simulated_longitude': simulatedData.longitude,
+                    'simulated_ip': simulatedData.ip
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showStudentStatus('success', data.message || 'Attendance submitted successfully!');
+                    if (codeInput) codeInput.value = '';
+                    refreshAttendanceHistory();
+                } else {
+                    showStudentStatus('error', data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showStudentStatus('error', 'An error occurred while submitting attendance.');
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Attendance';
+                }
+            });
+        }
+
+        // ===== HELPER FUNCTIONS =====
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+                statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+                statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+            }
+        }
+
+        function showStudentStatus(type, message) {
+            const statusDiv = document.getElementById('quickCodeStatus');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="status ' + type + '">' + message + '</div>';
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function generateAttendanceData() {
+            // Generate simulated location around Braga, Portugal
+            const baseLat = 41.5369;
+            const baseLon = -8.4239;
+            
+            return {
+                latitude: (baseLat + (Math.random() - 0.5) * 0.01).toFixed(6),
+                longitude: (baseLon + (Math.random() - 0.5) * 0.01).toFixed(6),
+                ip: Array(4).fill(0).map(() => Math.floor(Math.random() * 255) + 1).join('.')
+            };
+        }
+
+        function loadTodaySchedule() {
+            const scheduleContainer = document.getElementById('todaySchedule');
+            if (!scheduleContainer) return;
+
+            if (todayClasses && todayClasses.length > 0) {
+                scheduleContainer.innerHTML = '';
+                const now = new Date();
+                
+                todayClasses.forEach(classItem => {
+                    const startTime = new Date(classItem.start_datetime);
+                    const endTime = new Date(classItem.end_datetime);
+                    
+                    let status = 'upcoming';
+                    let statusText = 'Upcoming';
+                    
+                    if (now >= startTime && now <= endTime) {
+                        status = 'current';
+                        statusText = 'Now';
+                    } else if (now > endTime) {
+                        status = 'past';
+                        statusText = 'Ended';
+                    }
+                    
+                    const classElement = document.createElement('div');
+                    classElement.className = 'class-item ' + status;
+                    classElement.innerHTML = 
+                        '<div class="class-info">' +
+                            '<div class="class-name">' + (classItem.course_name || 'Unknown Course') + '</div>' +
+                            '<div class="class-time">' + 
+                                formatTime(startTime) + ' - ' + formatTime(endTime) +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="class-status ' + status + '">' + statusText + '</div>';
+                    
+                    scheduleContainer.appendChild(classElement);
+                });
+            } else {
+                scheduleContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No classes scheduled for today.</div>';
+            }
+        }
+
+        function loadCurrentClasses() {
+            const currentContainer = document.getElementById('currentClassesList');
+            if (!currentContainer) return;
+
+            const now = new Date();
+            const currentClassesFiltered = todayClasses.filter(classItem => {
+                const startTime = new Date(classItem.start_datetime);
+                const endTime = new Date(classItem.end_datetime);
+                return now >= startTime && now <= endTime;
+            });
+
+            if (currentClassesFiltered.length > 0) {
+                currentContainer.innerHTML = '';
+                currentClassesFiltered.forEach(classItem => {
+                    const classElement = document.createElement('div');
+                    classElement.className = 'class-item current';
+                    classElement.innerHTML = 
+                        '<div class="class-info">' +
+                            '<div class="class-name">🔴 ' + (classItem.course_name || 'Unknown Course') + '</div>' +
+                            '<div class="class-time">Active until ' + formatTime(new Date(classItem.end_datetime)) + '</div>' +
+                        '</div>';
+                    currentContainer.appendChild(classElement);
+                });
+            } else {
+                currentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">No classes running right now.</div>';
+            }
+        }
+
+        function loadWeeklyPreview() {
+            const weeklyContainer = document.getElementById('weeklyPreview');
+            if (!weeklyContainer) return;
+
+            if (weeklyClasses && weeklyClasses.length > 0) {
+                weeklyContainer.innerHTML = '';
+                
+                // Group classes by day
+                const classByDay = {};
+                weeklyClasses.forEach(classItem => {
+                    const date = new Date(classItem.start_datetime).toDateString();
+                    if (!classByDay[date]) {
+                        classByDay[date] = [];
+                    }
+                    classByDay[date].push(classItem);
+                });
+
+                Object.keys(classByDay).forEach(date => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-day';
+                    
+                    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                    const classCount = classByDay[date].length;
+                    
+                    dayElement.innerHTML = 
+                        '<div><strong>' + dayName + '</strong></div>' +
+                        '<div class="day-classes">' + classCount + ' class' + (classCount !== 1 ? 'es' : '') + '</div>';
+                    
+                    weeklyContainer.appendChild(dayElement);
+                });
+            } else {
+                weeklyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No classes this week.</div>';
+            }
+        }
+
+        function loadAttendanceHistory() {
+            const historyContainer = document.getElementById('attendanceHistory');
+            if (!historyContainer) return;
+
+            if (attendanceHistory && attendanceHistory.length > 0) {
+                historyContainer.innerHTML = '';
+                attendanceHistory.forEach(record => {
+                    const historyElement = document.createElement('div');
+                    historyElement.className = 'history-item';
+                    
+                    const status = record.is_present ? 'success' : 'warning';
+                    const statusText = record.is_present ? 'Present' : 'Pending';
+                    
+                    historyElement.innerHTML = 
+                        '<div>' +
+                            '<div class="class-name">' + (record.course_name || 'Unknown Course') + '</div>' +
+                            '<div class="class-time">' + formatDateTime(new Date(record.timestamp)) + '</div>' +
+                        '</div>' +
+                        '<div class="status ' + status + '">' + statusText + '</div>';
+                    
+                    historyContainer.appendChild(historyElement);
+                });
+            } else {
+                historyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No attendance records found.</div>';
+            }
+        }
+
+        function refreshAttendanceHistory() {
+            // In a real application, you would fetch fresh data from the server
+            // For now, we'll just reload the existing data
+            loadAttendanceHistory();
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function formatDateTime(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + formatTime(date);
+        }
+
+        function initWebSocket() {
+            // Connect to a general student WebSocket for notifications
+            const wsPath = 'ws://127.0.0.1:8001/ws/student/' + djangoData.userId + '/';
+            attendanceSocket = new WebSocket(wsPath);
+
+            attendanceSocket.onopen = function(e) {
+                console.log('Student WebSocket connected');
+                updateConnectionStatus(true);
+            };
+
+            attendanceSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('Student WebSocket message:', data);
+                
+                if (data.context && data.context.type === 'attendance_validated') {
+                    showStudentStatus('success', 'Your attendance for ' + data.context.class_name + ' has been validated!');
+                    refreshAttendanceHistory();
+                }
+            };
+
+            attendanceSocket.onclose = function(e) {
+                console.log('Student WebSocket disconnected');
+                updateConnectionStatus(false);
+            };
+
+            attendanceSocket.onerror = function(e) {
+                console.error('Student WebSocket error:', e);
+                updateConnectionStatus(false);
+            };
+        }
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Student Dashboard initialized');
+            console.log('User role:', userRole);
+
+            updateConnectionStatus(false);
+
+            // Load all dashboard components
+            loadCurrentClasses();
+            loadTodaySchedule();
+            loadWeeklyPreview();
+            loadAttendanceHistory();
+
+            // Format attendance code input
+            const quickCodeInput = document.getElementById('quickAttendanceCode');
+            if (quickCodeInput) {
+                quickCodeInput.addEventListener('input', function(e) {
+                    e.target.value = e.target.value.toUpperCase();
+                });
+            }
+
+            // Initialize WebSocket for real-time updates
+            // initWebSocket(); // Uncomment when you set up student WebSocket routing
+
+            // Refresh current classes every minute
+            setInterval(loadCurrentClasses, 60000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,962 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Attendance System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 1200px;
+            width: 95%;
+            margin: 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .role-selector {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .role-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .role-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .role-btn.active {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            transform: translateY(-2px);
+        }
+
+        .portal {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .portal.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .generated-code-text {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .generated-code-text.expired {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0.5rem 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .submissions-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .submission-item {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.3s ease;
+        }
+
+        .submission-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .submission-item:last-child {
+            border-bottom: none;
+        }
+
+        .student-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .submission-details {
+            flex-grow: 1;
+            margin-right: 1rem;
+        }
+
+        .submission-time {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-small:hover {
+            background: #ccc;
+        }
+
+        .btn-small.validate {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-small.validate:hover {
+            background: #218838;
+        }
+
+        .btn-small.ai {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-small.ai:hover {
+            background: #0056b3;
+        }
+
+        .ai-result-info {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 0.3rem;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f44336;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .role-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .generated-code-text {
+                font-size: 1.5rem;
+                letter-spacing: 4px;
+            }
+            
+            .submission-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .submission-details {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Disconnected</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Real-Time Attendance System</h1>
+            <p>Welcome, {{ request.user.get_full_name|default:request.user.username }}!</p>
+        </div>
+
+        {% if not request.user.is_authenticated %}
+        <div class="role-selector" id="roleSelector">
+            <button class="role-btn active" onclick="switchRole('teacher')">Teacher Portal</button>
+            <button class="role-btn" onclick="switchRole('student')">Student Portal</button>
+        </div>
+        {% endif %}
+
+        <div class="portal {% if request.user.role == 'teacher' %}active{% endif %}" id="teacherPortal">
+            {% if request.user.role == 'teacher' %}
+            <div class="dashboard">
+                <div class="card">
+                    <h3>Generate Attendance Code</h3>
+                    <div class="form-group">
+                        <label for="sessionSelect">Select Class Session:</label>
+                        <select id="sessionSelect">
+                            {% for session in teacher_class_sessions_today %}
+                                <option 
+                                    value="{{ session.id }}" 
+                                    data-course-name="{{ session.course.name }}"
+                                    {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}
+                                >
+                                    {{ session.course.name }} - {{ session.start_time|time:'H:i' }} to {{ session.end_time|time:'H:i' }}
+                                </option>
+                            {% empty %}
+                                <option value="">No classes today</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Code Duration (minutes):</label>
+                        <input type="number" id="duration" value="10" min="1" max="60">
+                    </div>
+                    <button class="btn" onclick="generateCode()" id="generateCodeBtn">Generate Code</button>
+                    
+                    <div id="activeCodeDisplay" style="display: none;">
+                        <h4>Current Code for <span id="currentCodeCourseName"></span>:</h4>
+                        <div class="generated-code-text" id="codeDisplay"></div>
+                        <div class="timer" id="timer">Time remaining: 10:00</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Live Attendance Submissions</h3>
+                    <div class="status success" id="submissionStatus" style="display: none;">
+                        New submission received!
+                    </div>
+                    <div class="submissions-list" id="submissionsList">
+                        <div style="text-align: center; color: #666; padding: 2rem;">
+                            Select a session to see submissions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p>You do not have teacher privileges or no active classes today.</p>
+            {% endif %}
+        </div>
+
+        <div class="portal {% if request.user.role == 'student' %}active{% endif %}" id="studentPortal">
+            {% if request.user.role == 'student' %}
+            <div class="dashboard">
+                <div class="card">
+                    <h3>Enter Attendance Code</h3>
+                    <div class="form-group">
+                        <label for="attendanceCode">Attendance Code:</label>
+                        <input type="text" id="attendanceCode" placeholder="Enter 6-digit code" maxlength="6" style="text-transform: uppercase;">
+                    </div>
+                    <button class="btn" onclick="submitAttendance()" id="submitAttendanceBtn">Submit Attendance</button>
+                    
+                    <div id="studentStatus"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Your Attendance History</h3>
+                    <div class="submissions-list" id="studentHistory">
+                        <div style="text-align: center; color: #666; padding: 2rem;">
+                            No attendance records found.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p>You do not have student privileges.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Django data injection -->
+    <script id="django-data" type="application/json">
+    {
+        "initialCodeDetails": {{ initial_code_details_json|default:"{}"|safe }},
+        "initialStudentSubmissions": {{ initial_student_submissions_json|default:"[]"|safe }},
+        "activeClassSessionIdInitial": "{{ active_class_session_id_initial|default:""|safe }}",
+        "studentHistoryData": {{ student_history_json|default:"[]"|safe }},
+        "userRole": "{{ request.user.role|default:""|safe }}",
+        "csrfToken": "{{ csrf_token|safe }}",
+        "isAuthenticated": {{ request.user.is_authenticated|yesno:"true,false" }},
+        "apiUrls": {
+            "generateCode": "{% url 'generate_code_api_view' %}",
+            "submitAttendance": "{% url 'submit_attendance_code' %}",
+            "runAiValidation": "{% url 'run_ai_validation' %}",
+            "validateAttendance": "{% url 'validate_attendance' %}",
+            "getSessionSubmissions": "{% url 'get_session_submissions' %}"
+        }
+    }
+    </script>
+
+    <script>
+        // Parse Django data safely
+        let djangoData;
+        try {
+            djangoData = JSON.parse(document.getElementById('django-data').textContent);
+        } catch (e) {
+            console.error('Error parsing Django data:', e);
+            djangoData = {
+                initialCodeDetails: {},
+                initialStudentSubmissions: [],
+                activeClassSessionIdInitial: "",
+                studentHistoryData: [],
+                userRole: "",
+                csrfToken: "",
+                isAuthenticated: false,
+                apiUrls: {}
+            };
+        }
+        
+        // Global variables
+        let attendanceSocket = null;
+        let currentClassSessionId = null;
+        let codeTimerInterval = null;
+        let codeExpiryTimestamp = null;
+
+        // Extract data from Django - MOVED BEFORE FUNCTIONS
+        const initialCodeDetails = djangoData.initialCodeDetails || {};
+        const initialStudentSubmissions = djangoData.initialStudentSubmissions || [];
+        const activeClassSessionIdInitial = djangoData.activeClassSessionIdInitial || "";
+        const studentHistoryData = djangoData.studentHistoryData || [];
+        const userRole = djangoData.userRole || "";
+        const CSRF_TOKEN = djangoData.csrfToken || "";
+        const API_URLS = djangoData.apiUrls || {};
+
+        // ===== GLOBAL FUNCTIONS FOR ONCLICK =====
+        
+        function generateCode() {
+            console.log('generateCode called');
+            console.log('API_URLS:', API_URLS);
+            
+            if (!API_URLS.generateCode) {
+                alert('API URL not available. Please refresh the page.');
+                return;
+            }
+            
+            const sessionSelect = document.getElementById('sessionSelect');
+            const classSessionId = sessionSelect ? sessionSelect.value : '';
+            const duration = document.getElementById('duration') ? document.getElementById('duration').value : '10';
+
+            if (!classSessionId) {
+                alert('Please select a class session.');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateCodeBtn');
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+            }
+
+            fetch(API_URLS.generateCode, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'class_session_id': classSessionId,
+                    'duration_minutes': duration
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    updateCodeDisplay(data.code, data.expires_at, 'active');
+                    alert('Code generated successfully!');
+                    initWebSocket(classSessionId);
+                    loadSubmissionsForSession(classSessionId);
+                } else {
+                    alert('Error generating code: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('An error occurred while generating the code.');
+            })
+            .finally(() => {
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Code';
+                }
+            });
+        }
+
+        function deactivateCode() {
+            clearInterval(codeTimerInterval);
+            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
+            if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
+            
+            const submissionsList = document.getElementById('submissionsList');
+            if (submissionsList) submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No active attendance session</div>';
+            
+            updateConnectionStatus(false);
+            if (attendanceSocket) attendanceSocket.close();
+            currentClassSessionId = null;
+        }
+
+        function submitAttendance() {
+            console.log('submitAttendance called');
+            
+            if (!API_URLS.submitAttendance) {
+                alert('API URL not available. Please refresh the page.');
+                return;
+            }
+            
+            const attendanceCodeInput = document.getElementById('attendanceCode');
+            const code = attendanceCodeInput ? attendanceCodeInput.value.trim().toUpperCase() : '';
+            const submitBtn = document.getElementById('submitAttendanceBtn');
+
+            if (!code) {
+                showStudentStatus('error', 'Please enter the attendance code.');
+                return;
+            }
+            
+            if (code.length !== 6) {
+                showStudentStatus('error', 'Attendance code must be 6 characters long.');
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+
+            fetch(API_URLS.submitAttendance, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'attendance_code': code
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showStudentStatus('success', data.message || 'Attendance submitted successfully!');
+                    if (attendanceCodeInput) attendanceCodeInput.value = '';
+                } else {
+                    showStudentStatus('error', data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showStudentStatus('error', 'An error occurred while submitting attendance.');
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Attendance';
+                }
+            });
+        }
+
+        function runAiValidation(recordId, classSessionId) {
+            if (!API_URLS.runAiValidation) {
+                alert('API URL not available. Please refresh the page.');
+                return;
+            }
+            
+            fetch(API_URLS.runAiValidation, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'attendance_record_id': recordId,
+                    'class_session_id': classSessionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('AI validation started!');
+                } else {
+                    alert('Error running AI: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('An error occurred while running AI validation.');
+            });
+        }
+
+        function validateAttendance(recordId, classSessionId) {
+            if (!API_URLS.validateAttendance) {
+                alert('API URL not available. Please refresh the page.');
+                return;
+            }
+            
+            fetch(API_URLS.validateAttendance, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'attendance_record_id': recordId,
+                    'class_session_id': classSessionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Attendance marked as Present!');
+                    const submissionItem = document.getElementById('submission-' + recordId);
+                    if (submissionItem) {
+                        const validateBtn = submissionItem.querySelector('.btn-small.validate');
+                        if (validateBtn) {
+                            validateBtn.disabled = true;
+                            validateBtn.textContent = 'Present';
+                        }
+                    }
+                } else {
+                    alert('Error validating attendance: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('An error occurred while validating attendance.');
+            });
+        }
+
+        function switchRole(role) {
+            const roleButtons = document.querySelectorAll('.role-btn');
+            const portals = document.querySelectorAll('.portal');
+            
+            roleButtons.forEach(btn => btn.classList.remove('active'));
+            portals.forEach(portal => portal.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(role + 'Portal').classList.add('active');
+        }
+
+        // ===== HELPER FUNCTIONS =====
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+                statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+                statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+            }
+        }
+
+        function updateCodeDisplay(code, expiresAtISO, status) {
+            const codeDisplay = document.getElementById('codeDisplay');
+            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
+            const timerElement = document.getElementById('timer');
+
+            if (!codeDisplay || !activeCodeDisplay || !timerElement) return;
+
+            codeDisplay.textContent = code;
+            activeCodeDisplay.style.display = 'block';
+
+            if (status === 'expired') {
+                codeDisplay.classList.add('expired');
+                timerElement.textContent = 'Code Expired';
+                clearInterval(codeTimerInterval);
+            } else {
+                codeExpiryTimestamp = new Date(expiresAtISO).getTime();
+                startCodeTimer();
+            }
+        }
+
+        function startCodeTimer() {
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
+
+            codeTimerInterval = setInterval(function() {
+                const now = new Date().getTime();
+                const timeLeft = codeExpiryTimestamp - now;
+                const timerElement = document.getElementById('timer');
+
+                if (timeLeft <= 0) {
+                    clearInterval(codeTimerInterval);
+                    const codeDisplay = document.getElementById('codeDisplay');
+                    if (codeDisplay) codeDisplay.classList.add('expired');
+                    if (timerElement) timerElement.textContent = 'Code Expired';
+                    return;
+                }
+
+                const minutes = Math.floor(timeLeft / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+
+                if (timerElement) {
+                    timerElement.textContent = 'Time remaining: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                }
+            }, 1000);
+        }
+
+        function showStudentStatus(type, message) {
+            const statusDiv = document.getElementById('studentStatus');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="status ' + type + '">' + message + '</div>';
+            }
+        }
+
+        function addSubmission(submissionData) {
+            const submissionsList = document.getElementById('submissionsList');
+            if (!submissionsList) return;
+
+            if (submissionsList.innerHTML.includes('text-align: center')) {
+                submissionsList.innerHTML = '';
+            }
+
+            const submissionItem = document.createElement('div');
+            submissionItem.className = 'submission-item';
+            submissionItem.id = 'submission-' + submissionData.id;
+            
+            submissionItem.innerHTML = 
+                '<div class="submission-details">' +
+                    '<div class="student-name">' + (submissionData.name || 'Unknown') + '</div>' +
+                    '<div class="submission-time">Submitted at ' + new Date(submissionData.timestamp).toLocaleTimeString() + '</div>' +
+                '</div>' +
+                '<div class="submission-actions">' +
+                    '<button class="btn-small ai" onclick="runAiValidation(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">Run AI</button>' +
+                    '<button class="btn-small validate" onclick="validateAttendance(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">' + 
+                        (submissionData.is_present ? 'Present' : 'Mark Present') +
+                    '</button>' +
+                '</div>';
+            
+            submissionsList.insertBefore(submissionItem, submissionsList.firstChild);
+        }
+
+        function loadSubmissionsForSession(sessionId) {
+            const submissionsList = document.getElementById('submissionsList');
+            if (!submissionsList) return;
+            if (!API_URLS.getSessionSubmissions) {
+                submissionsList.innerHTML = '<div class="status error">API URL not available</div>';
+                return;
+            }
+
+            submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Loading submissions...</div>';
+            currentClassSessionId = sessionId;
+
+            fetch(API_URLS.getSessionSubmissions + '?class_session_id=' + sessionId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    submissionsList.innerHTML = '';
+                    if (data.submissions && data.submissions.length > 0) {
+                        data.submissions.forEach(function(submission) {
+                            addSubmission(submission);
+                        });
+                    } else {
+                        submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No submissions yet for this session.</div>';
+                    }
+                } else {
+                    submissionsList.innerHTML = '<div class="status error">Error loading submissions: ' + (data.message || 'Unknown error') + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                submissionsList.innerHTML = '<div class="status error">Failed to fetch submissions.</div>';
+            });
+        }
+
+        function initWebSocket(sessionId) {
+            if (attendanceSocket && attendanceSocket.readyState === WebSocket.OPEN) {
+                if (currentClassSessionId !== sessionId) {
+                    attendanceSocket.close();
+                } else {
+                    return;
+                }
+            }
+            
+            currentClassSessionId = sessionId;
+            const wsPath = 'ws://' + window.location.host + '/ws/attendance/class_session_' + sessionId + '/';
+            attendanceSocket = new WebSocket(wsPath);
+
+            attendanceSocket.onopen = function(e) {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            };
+
+            attendanceSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('WebSocket message:', data);
+                
+                if (data.context && data.context.type === 'student_submitted') {
+                    addSubmission(data.context);
+                }
+            };
+
+            attendanceSocket.onclose = function(e) {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+            };
+
+            attendanceSocket.onerror = function(e) {
+                console.error('WebSocket error:', e);
+                updateConnectionStatus(false);
+            };
+        }
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard initialized');
+            console.log('User role:', userRole);
+            console.log('Functions available:', typeof generateCode);
+
+            if (djangoData.isAuthenticated) {
+                const roleSelector = document.getElementById('roleSelector');
+                if (roleSelector) roleSelector.style.display = 'none';
+            }
+
+            updateConnectionStatus(false);
+
+            if (userRole === 'teacher') {
+                if (initialCodeDetails && initialCodeDetails.code) {
+                    updateCodeDisplay(
+                        initialCodeDetails.code,
+                        initialCodeDetails.expires_at,
+                        initialCodeDetails.code_status
+                    );
+                    if (initialCodeDetails.class_session_id) {
+                        initWebSocket(initialCodeDetails.class_session_id);
+                    }
+                }
+
+                if (initialStudentSubmissions && initialStudentSubmissions.length > 0) {
+                    const submissionsList = document.getElementById('submissionsList');
+                    if (submissionsList) {
+                        submissionsList.innerHTML = '';
+                        initialStudentSubmissions.forEach(function(submission) {
+                            addSubmission(submission);
+                        });
+                    }
+                }
+            } else if (userRole === 'student') {
+                if (studentHistoryData && studentHistoryData.length > 0) {
+                    const historyDiv = document.getElementById('studentHistory');
+                    if (historyDiv) {
+                        historyDiv.innerHTML = '';
+                        studentHistoryData.forEach(function(record) {
+                            const newEntry = document.createElement('div');
+                            newEntry.className = 'submission-item';
+                            newEntry.innerHTML = 
+                                '<div>' +
+                                    '<div class="student-name">' + record.course_name + '</div>' +
+                                    '<div class="submission-time">' + record.session_date + ' - ' + new Date(record.timestamp).toLocaleTimeString() + '</div>' +
+                                '</div>' +
+                                '<div class="status ' + (record.status.toLowerCase().includes('present') ? 'success' : 'warning') + '">' + record.status + '</div>';
+                            historyDiv.appendChild(newEntry);
+                        });
+                    }
+                }
+            }
+
+            // Session selector change event
+            const sessionSelect = document.getElementById('sessionSelect');
+            if (sessionSelect) {
+                sessionSelect.addEventListener('change', function(event) {
+                    const selectedSessionId = event.target.value;
+                    if (selectedSessionId) {
+                        loadSubmissionsForSession(selectedSessionId);
+                    }
+                });
+
+                // Load initial session if available
+                if (activeClassSessionIdInitial && activeClassSessionIdInitial !== 'null') {
+                    loadSubmissionsForSession(activeClassSessionIdInitial);
+                }
+            }
+
+            // Format attendance code input
+            const attendanceCodeInput = document.getElementById('attendanceCode');
+            if (attendanceCodeInput) {
+                attendanceCodeInput.addEventListener('input', function(e) {
+                    e.target.value = e.target.value.toUpperCase();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
