@@ -49,6 +49,57 @@ def is_student(user):
 def is_admin(user):
     return user.is_authenticated and user.role == 'admin'
 
+# --- Get Code for Session ---
+
+@login_required(login_url='/login/')
+@user_passes_test(is_teacher, login_url='/login/')
+@require_GET
+def get_code_for_session(request):
+    """
+    API endpoint to get the current attendance code for a specific session.
+    """
+    class_session_id = request.GET.get('class_session_id')
+    if not class_session_id:
+        return JsonResponse({'status': 'error', 'message': 'Class session ID is required.'}, status=400)
+
+    try:
+        class_session = ClassSession.objects.get(id=class_session_id)
+        # Verify the teacher is associated with this class's course
+        if not class_session.course.teachers.filter(id=request.user.id).exists():
+            return JsonResponse({'status': 'error', 'message': 'Permission denied.'}, status=403)
+
+        # Try to get the attendance code for this session
+        try:
+            attendance_code = AttendanceCode.objects.get(class_session=class_session)
+            if attendance_code.is_valid():
+                return JsonResponse({
+                    'status': 'success',
+                    'code_details': {
+                        'code': attendance_code.code,
+                        'expires_at': attendance_code.expires_at.isoformat(),
+                        'is_valid': True
+                    }
+                })
+            else:
+                return JsonResponse({
+                    'status': 'success',
+                    'code_details': {
+                        'code': attendance_code.code,
+                        'expires_at': attendance_code.expires_at.isoformat(),
+                        'is_valid': False
+                    }
+                })
+        except AttendanceCode.DoesNotExist:
+            return JsonResponse({
+                'status': 'success',
+                'code_details': None,
+                'message': 'No code found for this session.'
+            })
+
+    except ClassSession.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Class session not found.'}, status=404)
+
+
 # --- Consolidated Dashboard View ---
 @login_required(login_url='/login/')
 def dashboard_view(request): # You might map this to your '/' or '/dashboard/' URL

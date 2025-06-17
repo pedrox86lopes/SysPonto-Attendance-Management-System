@@ -1,6 +1,8 @@
 # attendance/consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from .views import send_group_notification
+
 
 class ClassSessionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
