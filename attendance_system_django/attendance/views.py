@@ -1250,4 +1250,4 @@ def home(request):
         else:
             return redirect('dashboard')
     else:
-        return render(request, 'core/home.html')
+        return render(request, 'registration/login.html')

@@ -1,5 +1,6 @@
-# Django Real-time Attendance System
+[logo]: https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg "Logo Title Text 2"
 
+# SysPonto - Django Real-time Attendance System
 This project is a web-based attendance management system built with Django, featuring distinct dashboards for students, teachers, and administrators, along with real-time notifications powered by Django Channels.
 
 # Features
@@ -58,7 +59,8 @@ channels_redis: Redis backend for Channels.
 
 ## Prerequisites
 Python 3.8+
-pip (Python package installer)
+Django 4.0+
+PostgreSQL (or your preferred database)
 
 ## Redis Server:
 Linux (Debian/Ubuntu): sudo apt update && sudo apt install redis-server

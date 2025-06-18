@@ -32,7 +32,7 @@
                 </div>
 
                 <!-- Form -->
-                <form method="post" class="space-y-6">
+                <form method="post" action="{% url 'login' %}" class="space-y-6">
                     {% csrf_token %}
                     
                     <!-- Error Messages -->
@@ -93,12 +93,8 @@
                         </div>
                     </div>
 
-                    <!-- Remember Me & Forgot Password -->
+                    <!-- Forgot Password -->
                     <div class="flex items-center justify-between text-sm">
-                        <label class="flex items-center">
-                            <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
-                            <span class="ml-2 text-slate-600 dark:text-slate-400">Lembrar-me</span>
-                        </label>
                         <a href="#" onclick="showForgotPasswordModal()" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">
                             Esqueceu a palavra-passe?
                         </a>
@@ -113,18 +109,6 @@
                         </svg>
                     </button>
                 </form>
-
-                <!-- Additional Links -->
-                <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <p class="text-center text-sm text-slate-600 dark:text-slate-400">
-                        Não tem uma conta? 
-                        <a href="#" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">
-                            Registe-se aqui
-                        </a>
-                    </p>
-                </div>
-            </div>
-        </div>
 
         <!-- Security Badge -->
         <div class="mt-6 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
@@ -159,7 +143,7 @@
             
             <!-- Message -->
             <p class="text-center text-slate-600 dark:text-slate-400 mb-8">
-                Contacte o Administrador do CESAE para alterações
+                Contacte o Administrador do CESAE para alterações.
             </p>
             
             <!-- Close Button -->

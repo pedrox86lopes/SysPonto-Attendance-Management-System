@@ -16,9 +16,7 @@
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
                         <span class="text-gray-700">Olá, {{ user.get_full_name|default:user.username }}!</span>
-                        <a href="{% url 'dashboard' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            Dashboard
-                        </a>
+
                         <!-- Fixed logout with POST form -->
                         <form method="post" action="{% url 'logout' %}" class="inline">
                             {% csrf_token %}
@@ -60,10 +58,7 @@
                             Portal do Formando
                         </a>
                     {% endif %}
-                    <a href="{% url 'dashboard' %}" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium">
-                        <i data-lucide="layout-dashboard" class="h-5 w-5 mr-2 inline"></i>
-                        Dashboard Principal
-                    </a>
+
                 </div>
             {% else %}
                 <div class="flex justify-center space-x-4">
@@ -117,7 +112,7 @@
                     <span class="text-gray-600">© 2025 SysPonto - Sistema de Gestão de Presenças</span>
                 </div>
                 <div class="text-sm text-gray-500">
-                    Desenvolvido para CESAE Digital por <a href="https://github.com/pedrox86lopes">Pedro Lopes</a> e Pedro Rodrigues.
+                    Desenvolvido para CESAE Digital por <a href="https://github.com/pedrox86lopes">Pedro Lopes</a> e <a href="https://github.com/drowuid"> Pedro Rodrigues.</a>
                 </div>
             </div>
         </div>
