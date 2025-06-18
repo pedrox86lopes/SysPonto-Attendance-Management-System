@@ -2,10 +2,10 @@
 This project is a web-based attendance management system built with Django, featuring distinct dashboards for students, teachers, and administrators, along with real-time notifications powered by Django Channels.
 
 # Screenshots
-## Index Page
+## Login Page
 ![Image](https://github.com/user-attachments/assets/93ede926-3307-46b7-9563-69e8c9ad5cbd)
 
-## Login Page
+## Index Page
 ![Image](https://github.com/user-attachments/assets/2121bac1-5acd-4154-9075-ef49f2549370)
 
 ## Teacher Dashboard
