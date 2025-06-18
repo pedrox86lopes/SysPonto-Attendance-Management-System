@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,6 +24,7 @@
         }
     </script>
 </head>
+
 <body class="bg-gray-50">
     <!-- Navigation Header -->
     <nav class="bg-primary text-white shadow-lg">
@@ -41,7 +43,7 @@
                         <i data-lucide="user" class="h-5 w-5"></i>
                         <span class="text-sm">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
-                    <a href="{% url 'logout' %}" class="text-white hover:text-gray-300">
+                    <a href="#" onclick="logoutConfirm()" class="text-white hover:text-gray-300">
                         <i data-lucide="log-out" class="h-5 w-5"></i>
                     </a>
                 </div>
@@ -52,21 +54,24 @@
     <div class="container mx-auto px-4 py-6">
         <!-- Welcome Section -->
         <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, {{ request.user.get_full_name|default:request.user.username }}! 👋</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo ao Dashboard! 👋</h2>
             <p class="text-gray-600">Aqui está o resumo das suas aulas de hoje.</p>
         </div>
 
         <!-- Quick Navigation Pills -->
         <div class="flex flex-wrap justify-center gap-3 mb-6">
-            <a href="{% url 'dashboard' %}" class="inline-flex items-center px-4 py-2 bg-accent text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-medium">
+            <a href="{% url 'dashboard' %}"
+                class="inline-flex items-center px-4 py-2 bg-accent text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-medium">
                 <i data-lucide="key" class="h-4 w-4 mr-2"></i>
                 Entrar código de presença
             </a>
-            <a href="{% url 'student_calendar' %}" class="inline-flex items-center px-4 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors text-sm font-medium">
+            <a href="{% url 'student_calendar' %}"
+                class="inline-flex items-center px-4 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors text-sm font-medium">
                 <i data-lucide="calendar-days" class="h-4 w-4 mr-2"></i>
                 Calendário das aulas
             </a>
-            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors text-sm font-medium">
+            <a href="{% url 'home' %}"
+                class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors text-sm font-medium">
                 <i data-lucide="home" class="h-4 w-4 mr-2"></i>
                 Principal
             </a>
@@ -83,7 +88,7 @@
                     <i data-lucide="trending-up" class="h-8 w-8 text-success"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-accent">
                 <div class="flex items-center">
                     <div class="flex-1">
@@ -93,7 +98,7 @@
                     <i data-lucide="calendar" class="h-8 w-8 text-accent"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-warning">
                 <div class="flex items-center">
                     <div class="flex-1">
@@ -103,7 +108,7 @@
                     <i data-lucide="clock" class="h-8 w-8 text-warning"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
                 <div class="flex items-center">
                     <div class="flex-1">
@@ -128,23 +133,17 @@
                     </div>
                     <div class="p-6">
                         <div class="flex space-x-4">
-                            <input 
-                                type="text" 
-                                id="quickAttendanceCode"
-                                placeholder="Digite o código (6 dígitos)"
+                            <input type="text" id="quickAttendanceCode" placeholder="Digite o código (6 dígitos)"
                                 class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-mono uppercase tracking-widest focus:ring-2 focus:ring-accent focus:border-accent"
-                                maxlength="6"
-                            >
-                            <button 
+                                maxlength="6">
+                            <button
                                 class="px-6 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                                onclick="submitQuickAttendance()"
-                                id="quickSubmitBtn"
-                            >
+                                onclick="submitQuickAttendance()" id="quickSubmitBtn">
                                 Enviar
                             </button>
                         </div>
                         <div id="quickCodeStatus" class="mt-4"></div>
-                        
+
                         <!-- Current Running Classes -->
                         <div id="currentClassesDisplay" class="mt-6">
                             <h4 class="text-md font-medium text-gray-700 mb-3 flex items-center">
@@ -203,15 +202,20 @@
                         <h3 class="text-lg font-semibold text-gray-900">Ações Rápidas</h3>
                     </div>
                     <div class="p-6 space-y-3">
-                        <a href="{% url 'student_calendar' %}" class="w-full flex items-center justify-center px-4 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <a href="{% url 'student_calendar' %}"
+                            class="w-full flex items-center justify-center px-4 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors">
                             <i data-lucide="calendar" class="h-4 w-4 mr-2"></i>
                             Ver Calendário
                         </a>
-                        <button class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors" onclick="showAchievements()">
+                        <button
+                            class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                            onclick="showAchievements()">
                             <i data-lucide="trophy" class="h-4 w-4 mr-2"></i>
                             Conquistas
                         </button>
-                        <button class="w-full flex items-center justify-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors" onclick="exportReport()">
+                        <button
+                            class="w-full flex items-center justify-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                            onclick="exportReport()">
                             <i data-lucide="download" class="h-4 w-4 mr-2"></i>
                             Exportar Relatório
                         </button>
@@ -234,7 +238,8 @@
                                     <span class="text-purple-600" id="monthlyProgress">--% completo</span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-purple-500 h-2 rounded-full transition-all duration-300" id="monthlyProgressBar" style="width: 0%"></div>
+                                    <div class="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                                        id="monthlyProgressBar" style="width: 0%"></div>
                                 </div>
                             </div>
                             <div>
@@ -243,7 +248,8 @@
                                     <span class="text-success" id="weeklyProgress">--/-- dias</span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-success h-2 rounded-full transition-all duration-300" id="weeklyProgressBar" style="width: 0%"></div>
+                                    <div class="bg-success h-2 rounded-full transition-all duration-300"
+                                        id="weeklyProgressBar" style="width: 0%"></div>
                                 </div>
                             </div>
                         </div>
@@ -332,7 +338,7 @@
                 apiUrls: {}
             };
         }
-        
+
         // Global variables
         let attendanceSocket = null;
         const userRole = djangoData.userRole || "student";
@@ -346,7 +352,7 @@
         const currentClasses = djangoData.currentClasses || [];
 
         // ===== MAIN FUNCTIONS =====
-        
+
         function submitQuickAttendance() {
             const codeInput = document.getElementById('quickAttendanceCode');
             const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
@@ -356,7 +362,7 @@
                 showStudentStatus('error', 'Por favor, introduza o código de presença.');
                 return;
             }
-            
+
             if (code.length !== 6) {
                 showStudentStatus('error', 'O código de presença deve ter 6 caracteres.');
                 return;
@@ -383,26 +389,26 @@
                     'simulated_ip': simulatedData.ip
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
-                    if (codeInput) codeInput.value = '';
-                    refreshAttendanceHistory();
-                } else {
-                    showStudentStatus('error', data.message || 'Erro desconhecido.');
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
-            })
-            .finally(() => {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Enviar';
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
+                        if (codeInput) codeInput.value = '';
+                        refreshAttendanceHistory();
+                    } else {
+                        showStudentStatus('error', data.message || 'Erro desconhecido.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro de pesquisa:', error);
+                    showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
+                })
+                .finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Enviar';
+                    }
+                });
         }
 
         // ===== HELPER FUNCTIONS =====
@@ -418,8 +424,8 @@
             const statusDiv = document.getElementById('quickCodeStatus');
             if (statusDiv) {
                 let bgColor, textColor, borderColor;
-                
-                switch(type) {
+
+                switch (type) {
                     case 'success':
                         bgColor = 'bg-green-50';
                         textColor = 'text-green-700';
@@ -435,10 +441,10 @@
                         textColor = 'text-blue-700';
                         borderColor = 'border-blue-200';
                 }
-                
+
                 statusDiv.innerHTML = `<div class="p-3 ${bgColor} border ${borderColor} rounded-lg ${textColor} flex items-center"><i data-lucide="info" class="h-4 w-4 mr-2"></i>${message}</div>`;
                 lucide.createIcons();
-                
+
                 setTimeout(() => {
                     statusDiv.innerHTML = '';
                 }, 5000);
@@ -449,7 +455,7 @@
             // Generate simulated location around Braga, Portugal
             const baseLat = 41.5369;
             const baseLon = -8.4239;
-            
+
             return {
                 latitude: (baseLat + (Math.random() - 0.5) * 0.01).toFixed(6),
                 longitude: (baseLon + (Math.random() - 0.5) * 0.01).toFixed(6),
@@ -465,21 +471,21 @@
             if (todayClasses && todayClasses.length > 0) {
                 scheduleContainer.innerHTML = '';
                 const now = new Date();
-                
+
                 // Update today's class count
                 if (todayCountEl) todayCountEl.textContent = todayClasses.length;
-                
+
                 todayClasses.forEach(classItem => {
                     const startTime = new Date(classItem.start_datetime);
                     const endTime = new Date(classItem.end_datetime);
-                    
+
                     let status = 'upcoming';
                     let statusText = 'Próxima';
                     let bgColor = 'bg-yellow-50';
                     let borderColor = 'border-yellow-200';
                     let textColor = 'text-yellow-800';
                     let dotColor = 'bg-yellow-500';
-                    
+
                     if (now >= startTime && now <= endTime) {
                         status = 'current';
                         statusText = 'Agora';
@@ -495,10 +501,10 @@
                         textColor = 'text-gray-700';
                         dotColor = 'bg-gray-400';
                     }
-                    
+
                     const classElement = document.createElement('div');
                     classElement.className = `flex items-center p-4 ${bgColor} border ${borderColor} rounded-lg`;
-                    classElement.innerHTML = 
+                    classElement.innerHTML =
                         `<div class="flex-1">
                             <div class="flex items-center">
                                 <div class="w-3 h-3 ${dotColor} rounded-full mr-3"></div>
@@ -507,10 +513,10 @@
                             </div>
                             <p class="text-sm ${textColor.replace('800', '600')} mt-1">${formatTime(startTime)} - ${formatTime(endTime)}</p>
                         </div>`;
-                    
+
                     scheduleContainer.appendChild(classElement);
                 });
-                
+
                 // Update next class time
                 const upcomingClass = todayClasses.find(c => new Date(c.start_datetime) > now);
                 const nextTimeEl = document.getElementById('nextClassTime');
@@ -519,7 +525,7 @@
                 } else if (nextTimeEl) {
                     nextTimeEl.textContent = '--';
                 }
-                
+
             } else {
                 scheduleContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Não há aulas marcadas para hoje.</div>';
                 if (todayCountEl) todayCountEl.textContent = '0';
@@ -542,7 +548,7 @@
                 currentClassesFiltered.forEach(classItem => {
                     const classElement = document.createElement('div');
                     classElement.className = 'flex items-center p-3 bg-green-50 border border-green-200 rounded-lg mb-2';
-                    classElement.innerHTML = 
+                    classElement.innerHTML =
                         `<div class="flex-1">
                             <div class="flex items-center">
                                 <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
@@ -564,10 +570,10 @@
 
             if (weeklyClasses && weeklyClasses.length > 0) {
                 weeklyContainer.innerHTML = '';
-                
+
                 // Update weekly class count
                 if (weeklyCountEl) weeklyCountEl.textContent = weeklyClasses.length;
-                
+
                 // Group classes by day
                 const classByDay = {};
                 weeklyClasses.forEach(classItem => {
@@ -581,14 +587,14 @@
                 Object.keys(classByDay).forEach(date => {
                     const dayElement = document.createElement('div');
                     dayElement.className = 'flex justify-between items-center p-3 border-b border-gray-200 last:border-b-0';
-                    
+
                     const dayName = new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', month: 'short', day: 'numeric' });
                     const classCount = classByDay[date].length;
-                    
-                    dayElement.innerHTML = 
+
+                    dayElement.innerHTML =
                         `<div class="font-medium text-gray-900">${dayName}</div>
                          <div class="text-sm text-gray-500">${classCount} aula${classCount !== 1 ? 's' : ''}</div>`;
-                    
+
                     weeklyContainer.appendChild(dayElement);
                 });
             } else {
@@ -603,34 +609,34 @@
 
             if (attendanceHistory && attendanceHistory.length > 0) {
                 historyContainer.innerHTML = '';
-                
+
                 // Calculate attendance statistics
                 const totalRecords = attendanceHistory.length;
                 const presentRecords = attendanceHistory.filter(r => r.is_present).length;
                 const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
-                
+
                 // Update attendance rate display
                 const rateEl = document.getElementById('attendanceRate');
                 if (rateEl) rateEl.textContent = attendanceRate + '%';
-                
+
                 // Update statistics section
                 updateStatistics(attendanceHistory);
-                
+
                 // Display recent history
                 attendanceHistory.slice(0, 5).forEach(record => {
                     const historyElement = document.createElement('div');
                     historyElement.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg';
-                    
+
                     const statusColor = record.is_present ? 'text-green-600' : 'text-yellow-600';
                     const statusText = record.is_present ? 'Presente' : 'Pendente';
-                    
-                    historyElement.innerHTML = 
+
+                    historyElement.innerHTML =
                         `<div class="flex-1">
                             <p class="font-medium text-gray-900">${record.course_name || 'Curso Desconhecido'}</p>
                             <p class="text-sm text-gray-500">${formatDateTime(new Date(record.timestamp))}</p>
                         </div>
                         <span class="px-2 py-1 text-xs font-medium rounded-full ${record.is_present ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${statusText}</span>`;
-                    
+
                     historyContainer.appendChild(historyElement);
                 });
             } else {
@@ -641,20 +647,20 @@
         function updateStatistics(history) {
             const statsSection = document.getElementById('statisticsSection');
             if (!statsSection || !history.length) return;
-            
+
             const now = new Date();
             const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
             const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            
+
             // Filter records for this week and month
             const thisWeekRecords = history.filter(r => new Date(r.timestamp) >= thisWeekStart);
             const thisMonthRecords = history.filter(r => new Date(r.timestamp) >= thisMonthStart);
-            
+
             const weeklyPresent = thisWeekRecords.filter(r => r.is_present).length;
             const monthlyPresent = thisMonthRecords.filter(r => r.is_present).length;
             const totalPresent = history.filter(r => r.is_present).length;
             const globalRate = Math.round((totalPresent / history.length) * 100);
-            
+
             statsSection.innerHTML = `
                 <div class="flex justify-between">
                     <span class="text-gray-600">Esta Semana</span>
@@ -669,7 +675,7 @@
                     <span class="font-semibold text-purple-500">${globalRate}%</span>
                 </div>
             `;
-            
+
             // Update progress bars
             updateProgressBars(weeklyPresent, thisWeekRecords.length, globalRate);
         }
@@ -679,12 +685,12 @@
             const monthlyBarEl = document.getElementById('monthlyProgressBar');
             const weeklyProgressEl = document.getElementById('weeklyProgress');
             const weeklyBarEl = document.getElementById('weeklyProgressBar');
-            
+
             if (monthlyProgressEl && monthlyBarEl) {
                 monthlyProgressEl.textContent = `${globalRate}% completo`;
                 monthlyBarEl.style.width = `${Math.min(globalRate, 100)}%`;
             }
-            
+
             if (weeklyProgressEl && weeklyBarEl && weeklyTotal > 0) {
                 const weeklyRate = Math.round((weeklyPresent / weeklyTotal) * 100);
                 weeklyProgressEl.textContent = `${weeklyPresent}/${weeklyTotal} dias`;
@@ -719,34 +725,34 @@
             const wsPath = 'ws://127.0.0.1:8001/ws/student/' + djangoData.userId + '/';
             attendanceSocket = new WebSocket(wsPath);
 
-            attendanceSocket.onopen = function(e) {
+            attendanceSocket.onopen = function (e) {
                 console.log('Aluno ligado via WebSocket');
                 updateConnectionStatus(true);
             };
 
-            attendanceSocket.onmessage = function(e) {
+            attendanceSocket.onmessage = function (e) {
                 const data = JSON.parse(e.data);
                 console.log('Mensagem do aluno WebSocket:', data);
-                
+
                 if (data.context && data.context.type === 'attendance_validated') {
                     showStudentStatus('success', 'A sua presença para ' + data.context.class_name + ' foi validada!');
                     refreshAttendanceHistory();
                 }
             };
 
-            attendanceSocket.onclose = function(e) {
+            attendanceSocket.onclose = function (e) {
                 console.log('WebSocket do aluno desligado');
                 updateConnectionStatus(false);
             };
 
-            attendanceSocket.onerror = function(e) {
+            attendanceSocket.onerror = function (e) {
                 console.error('Erro do Websocket do aluno:', e);
                 updateConnectionStatus(false);
             };
         }
 
         // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard do Aluno inicializado');
             console.log('Função do utilizador:', userRole);
 
@@ -761,7 +767,7 @@
             // Format attendance code input
             const quickCodeInput = document.getElementById('quickAttendanceCode');
             if (quickCodeInput) {
-                quickCodeInput.addEventListener('input', function(e) {
+                quickCodeInput.addEventListener('input', function (e) {
                     e.target.value = e.target.value.toUpperCase();
                 });
             }
@@ -771,7 +777,7 @@
 
             // Refresh current classes every minute
             setInterval(loadCurrentClasses, 60000);
-            
+
             // Refresh data every 5 minutes
             setInterval(() => {
                 loadTodaySchedule();
@@ -779,5 +785,16 @@
             }, 300000);
         });
     </script>
+    <script>
+        function logoutConfirm() {
+            if (confirm('Tem a certeza de que quer sair?')) {
+                document.getElementById('logout-form').submit();
+            }
+        }
+    </script>
+    <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
+        {% csrf_token %}
+    </form>
 </body>
+
 </html>

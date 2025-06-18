@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,13 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SysPonto{% endblock %}</title>
     
-    <!-- Tailwind CSS via CDN -->
+    <!-- Default CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
-    <!-- Custom Tailwind Config -->
+    <!-- Block for additional CSS -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Default Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -19,36 +21,28 @@
                     colors: {
                         primary: '#1f2937',
                         accent: '#3b82f6',
-                        'muted-foreground': '#6b7280',
-                        card: '#ffffff',
-                        'card-foreground': '#1f2937',
-                        'accent-foreground': '#ffffff'
-                    },
-                    fontFamily: {
-                        headline: ['Inter', 'sans-serif']
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
                     }
                 }
             }
         }
     </script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-50">
-    {% block header %}{% endblock %}
-    
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    
-    {% block extra_js %}{% endblock %}
-    
-    <!-- Initialize Lucide Icons -->
+    {% block content %}
+    {% endblock %}
+
+    <!-- Default JavaScript -->
     <script>
-        lucide.createIcons();
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     </script>
+    
+    <!-- Block for additional JavaScript -->
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

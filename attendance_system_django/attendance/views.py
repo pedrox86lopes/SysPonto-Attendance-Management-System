@@ -374,6 +374,35 @@ def teacher_generate_code_page(request): # Renamed for clarity, original name ca
         current_code_details['class_session_id'] = str(active_class_session_for_display.id)
         # Note: current_code_details will still have code and expires_at as None unless set by an existing code
 
+    # Calculate dashboard metrics
+    total_students_enrolled = 0
+    total_courses_taught = 0
+    pending_validations = 0
+    active_codes_count = 0
+    
+    # Get courses taught by this teacher
+    teacher_courses = Course.objects.filter(teachers=request.user)
+    total_courses_taught = teacher_courses.count()
+    
+    # Get total students enrolled in teacher's courses
+    total_students_enrolled = User.objects.filter(
+        role='student',
+        student_enrollments__course__in=teacher_courses
+    ).distinct().count()
+    
+    # Count pending validations (attendance records not marked as present)
+    pending_validations = AttendanceRecord.objects.filter(
+        class_session__course__teachers=request.user,
+        is_present=False
+    ).count()
+    
+    # Count active codes
+    active_codes_count = AttendanceCode.objects.filter(
+        class_session__course__teachers=request.user,
+        expires_at__gt=timezone.now(),
+        is_active=True
+    ).count()
+
     # (You might need to fetch initial student submissions for the active session here as well)
     initial_student_submissions = [] # Populate this based on active_class_session_for_display if needed
 
@@ -383,11 +412,12 @@ def teacher_generate_code_page(request): # Renamed for clarity, original name ca
         'active_class_session_for_display': active_class_session_for_display,
         'active_class_session_id': str(active_class_session_for_display.id) if active_class_session_for_display else '',
         'initial_student_submissions_parsed': initial_student_submissions, # Ensure this is properly formatted for JS
-        # Add other dashboard metrics here as needed (total students, total courses, etc.)
-        'total_students_enrolled': 0, # Placeholder
-        'total_courses_taught': 0,    # Placeholder
+        # Dashboard metrics
+        'total_students_enrolled': total_students_enrolled,
+        'total_courses_taught': total_courses_taught,
         'current_day_sessions': class_sessions_today.count(), # Count of today's sessions
-        'pending_validations': 0,     # Placeholder
+        'pending_validations': pending_validations,
+        'active_codes_count': active_codes_count,  # Add this
         'total_present_attendance': 0, # Placeholder for chart
         'total_pending_attendance': 0, # Placeholder for chart
         'course_names_for_chart': json.dumps([]), # Placeholder for chart
@@ -397,68 +427,48 @@ def teacher_generate_code_page(request): # Renamed for clarity, original name ca
     return render(request, 'teacher_dashboard.html', context)
 
 
-# --- NEW VIEW FOR AJAX POST REQUEST ---
+# --- Generate Code API ---
 @login_required
-@user_passes_test(is_teacher) # Ensure only teachers can access this
-@require_POST # This decorator ensures it only accepts POST requests
+@user_passes_test(is_teacher)
+@require_POST
 def generate_code_api_view(request):
-    """
-    Handles the POST request to generate an attendance code.
-    Returns JSON response.
-    """
+    """Handles the POST request to generate an attendance code"""
     class_session_id = request.POST.get('class_session_id')
 
     if not class_session_id:
         return JsonResponse({'status': 'error', 'message': 'ID da sessão de turma não fornecido.'}, status=400)
 
     try:
-        # Get the class session, ensuring it belongs to the logged-in teacher
         class_session = get_object_or_404(ClassSession, id=class_session_id, course__teachers=request.user)
-    except Exception: # Catch any exception, including DoesNotExist or permissions
+    except Exception:
         return JsonResponse({'status': 'error', 'message': 'Sessão de turma não encontrada ou não pertence ao professor.'}, status=404)
 
-    # --- Code Generation Logic ---
+    # Generate new code
     characters = string.ascii_uppercase + string.digits
-    new_code = ''.join(random.choices(characters, k=6)) # Generates a 6-character code
-
-    # Define code expiration (e.g., 10 minutes from now)
+    new_code = ''.join(random.choices(characters, k=6))
     expires_at = timezone.now() + timedelta(minutes=10)
 
     try:
-        # Although update_or_create will handle the uniqueness,
-        # expiring previous codes *explicitly* can be good practice
-        # if you want to ensure any old code for this session is
-        # marked as no longer valid in its 'expires_at' or 'is_active' state
-        # before potentially being overridden.
-        # However, update_or_create itself will overwrite the 'code' and 'expires_at'
-        # of the *single* existing object, making this filter/update redundant for the
-        # unique constraint itself. You can keep it if you want the 'expires_at'
-        # of *all* previous records to be updated, but for a OneToOneField, it's less critical.
-        # Let's simplify and rely on update_or_create for the single record.
-        # AttendanceCode.objects.filter(class_session=class_session, expires_at__gt=timezone.now()).update(expires_at=timezone.now() - timedelta(seconds=1))
-
-        # Use update_or_create to either update the existing attendance code
-        # for this session or create a new one if it doesn't exist.
         attendance_code, created = AttendanceCode.objects.update_or_create(
-            class_session=class_session, # This field is used to find the existing object (due to OneToOneField)
-            defaults={ # These are the fields that will be set/updated
+            class_session=class_session,
+            defaults={
                 'code': new_code,
                 'expires_at': expires_at,
                 'is_active': True,
-                'generated_by': request.user, # Also set the generator
+                'generated_by': request.user,
             }
         )
 
         return JsonResponse({
             'status': 'success',
             'message': 'Código gerado com sucesso!',
-            'code': attendance_code.code, # Use code from the updated/created object
-            'expires_at': attendance_code.expires_at.isoformat(), # ISO format for JavaScript parsing
-            'class_session_id': str(class_session.id) # Ensure string for consistency
+            'code': attendance_code.code,
+            'expires_at': attendance_code.expires_at.isoformat(),
+            'class_session_id': str(class_session.id)
         })
 
     except Exception as e:
-        print(f"Error saving attendance code: {e}") # Log the error for debugging
+        logger.error(f"Error saving attendance code: {e}")
         return JsonResponse({'status': 'error', 'message': f'Erro ao guardar código: {str(e)}'}, status=500)
 
 @login_required(login_url='/login/')
@@ -538,15 +548,15 @@ def generate_attendance_code(request):
 @user_passes_test(is_teacher, login_url='/login/')
 def teacher_dashboard(request):
     """
-    Renders the teacher's attendance dashboard.
+    FIXED: Renders the teacher's attendance dashboard with proper metrics and code display.
     Fetches all ongoing/upcoming classes for the teacher today,
     and initial data for the most relevant class session.
     """
     today = localdate()
     now_time = timezone.now().time()
 
+    # Get all today's sessions for the teacher
     teacher_class_sessions_today = ClassSession.objects.filter(
-        Q(start_time__lte=now_time, end_time__gte=now_time) | Q(start_time__gt=now_time),
         course__teachers=request.user,
         date=today
     ).order_by('start_time').select_related('course')
@@ -555,6 +565,7 @@ def teacher_dashboard(request):
     student_submissions_data = []
     active_class_session_for_display = None
 
+    # Try to find an active code for today's sessions first
     for session in teacher_class_sessions_today:
         try:
             code_obj = AttendanceCode.objects.get(class_session=session)
@@ -570,6 +581,7 @@ def teacher_dashboard(request):
         except AttendanceCode.DoesNotExist:
             pass
 
+    # If no active code found, but there are sessions, default to the first
     if not active_class_session_for_display and teacher_class_sessions_today.exists():
         active_class_session_for_display = teacher_class_sessions_today.first()
         try:
@@ -588,30 +600,53 @@ def teacher_dashboard(request):
                 'expires_at': None
             }
 
+    # Get submissions for the active session
     if active_class_session_for_display:
         submissions = AttendanceRecord.objects.filter(
             class_session=active_class_session_for_display
         ).select_related('student').order_by('timestamp')
         
         for sub in submissions:
-            ai_result_data = None
-            # Assuming ai_result_json is the field name that stores the JSON string
-            if hasattr(sub, 'ai_result_json') and sub.ai_result_json: 
-                try:
-                    ai_result_data = json.loads(sub.ai_result_json)
-                except json.JSONDecodeError:
-                    logger = logging.getLogger(__name__)
-                    logger.warning("Could not decode AI result JSON for record ID %s", sub.id)
-
+            ai_result_data = sub.ai_result  # JSONField returns dict directly
+            
             student_submissions_data.append({
-                'id': sub.id,
+                'id': str(sub.id),
                 'name': sub.student.get_full_name() or sub.student.username,
                 'timestamp': sub.timestamp.isoformat(),
                 'simulatedIp': sub.simulated_ip,
                 'simulatedGeolocation': sub.simulated_geolocation,
                 'aiResult': ai_result_data,
                 'is_present': sub.is_present,
+                'class_session_id': str(active_class_session_for_display.id),
             })
+
+    # FIXED: Calculate proper dashboard metrics
+    teacher_courses = Course.objects.filter(teachers=request.user)
+    
+    # Total students enrolled in teacher's courses
+    total_students_enrolled = User.objects.filter(
+        role='student',
+        student_enrollments__course__in=teacher_courses
+    ).distinct().count()
+    
+    # Total courses taught
+    total_courses_taught = teacher_courses.count()
+    
+    # Today's sessions count
+    current_day_sessions = teacher_class_sessions_today.count()
+    
+    # Pending validations (attendance records not marked as present)
+    pending_validations = AttendanceRecord.objects.filter(
+        class_session__course__teachers=request.user,
+        is_present=False
+    ).count()
+    
+    # Active codes count
+    active_codes_count = AttendanceCode.objects.filter(
+        class_session__course__teachers=request.user,
+        expires_at__gt=timezone.now(),
+        is_active=True
+    ).count()
 
     # Known valid locations (hardcoded for now, can come from model/settings in production)
     known_valid_locations = [
@@ -619,46 +654,48 @@ def teacher_dashboard(request):
     ]
 
     context = {
-        'teacher_class_sessions_today': teacher_class_sessions_today, # All classes for today for the dropdown
-        'active_class_session_for_display': active_class_session_for_display, # The one whose submissions are initially shown
+        'teacher_class_sessions_today': teacher_class_sessions_today,
+        'active_class_session_for_display': active_class_session_for_display,
         'initial_code_details': json.dumps(current_code_details),
         'initial_student_submissions': json.dumps(student_submissions_data),
-        'known_valid_locations': json.dumps(known_valid_locations),
-        # Pass the ID of the active session so JS knows which channel to listen to for student submissions
-        'active_class_session_id': str(active_class_session_for_display.id) if active_class_session_for_display else None
+        'active_class_session_id': str(active_class_session_for_display.id) if active_class_session_for_display else None,
+        'total_students_enrolled': total_students_enrolled,
+        'total_courses_taught': total_courses_taught,
+        'current_day_sessions': current_day_sessions,
+        'pending_validations': pending_validations,
+        'active_codes_count': active_codes_count,
+        # For the template compatibility
+        'initial_code_details_json': json.dumps(current_code_details),
+        'initial_student_submissions_json': json.dumps(student_submissions_data),
+        'active_class_session_id_initial': str(active_class_session_for_display.id) if active_class_session_for_display else "",
     }
     return render(request, 'teacher/teacher_dashboard.html', context)
 
 
+# --- AI Validation API ---
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')
 @require_POST
 def run_ai_validation(request):
-    """
-    API endpoint for teachers to trigger AI validation on a specific attendance record.
-    Simulates AI logic (random outcome, basic geolocation check).
-    """
+    """API endpoint for teachers to trigger AI validation"""
     attendance_record_id = request.POST.get('attendance_record_id')
-    class_session_id = request.POST.get('class_session_id') # Used for authorization check
+    class_session_id = request.POST.get('class_session_id')
 
     if not attendance_record_id or not class_session_id:
         return JsonResponse({'status': 'error', 'message': 'Record ID and Class Session ID are required.'}, status=400)
 
     try:
         record = AttendanceRecord.objects.get(id=attendance_record_id, class_session__id=class_session_id)
-        # Ensure the teacher is authorized for this record's class
         if not record.class_session.course.teachers.filter(id=request.user.id).exists():
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'}, status=403)
-
     except AttendanceRecord.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Attendance record not found.'}, status=404)
 
-    # --- Simulate AI Logic (Enhanced) ---
+    # Simulate AI Logic
     is_fraudulent = False
     fraud_explanation = "No issues detected."
 
-    # More sophisticated random fraud detection
-    if random.random() < 0.2: # 20% chance of random fraud
+    if random.random() < 0.2:  # 20% chance of fraud
         is_fraudulent = True
         fraud_explanation = random.choice([
             "Unusual activity pattern detected.",
@@ -667,82 +704,62 @@ def run_ai_validation(request):
         ])
 
     # Geolocation check
-    if record.simulated_geolocation: # This field should be a JSONField or similar
+    if record.simulated_geolocation:
         sim_lat = record.simulated_geolocation.get('latitude')
         sim_lon = record.simulated_geolocation.get('longitude')
         
-        # Define the primary valid location (e.g., CESAE Digital)
         cesae_lat = 41.5431
         cesae_lon = -8.4079
 
-        # Simple distance check (using approximate degree-to-km conversion for small distances)
-        # 1 degree lat is approx 111 km, 1 degree lon is approx 111*cos(lat) km
-        # Added math.radians for correct cosine calculation
         if sim_lat is not None and sim_lon is not None:
             lat_diff = abs(sim_lat - cesae_lat) * 111
-            lon_diff = abs(sim_lon - cesae_lon) * 111 * abs(math.cos(math.radians(cesae_lat))) 
+            lon_diff = abs(sim_lon - cesae_lon) * 111 * abs(math.cos(math.radians(cesae_lat)))
 
-            if lat_diff > 0.5 or lon_diff > 0.5: # If distance is > 0.5 km
+            if lat_diff > 0.5 or lon_diff > 0.5:
                 is_fraudulent = True
                 fraud_explanation = "Geolocation is outside the expected classroom area."
         else:
             is_fraudulent = True
             fraud_explanation = "Incomplete geolocation data provided."
     else:
-        # If no geolocation provided, consider it suspicious for AI check
         is_fraudulent = True
         fraud_explanation = "Geolocation data missing or could not be obtained."
 
-    # Store AI result as a JSON string
     ai_result_dict = {
         'isFraudulent': is_fraudulent,
         'fraudExplanation': fraud_explanation
     }
-    record.ai_result = ai_result_dict # Ensure this matches your model field name
+    record.ai_result = ai_result_dict
     record.save()
-
-    # Send real-time notification to the class session group for dashboard update
-    send_group_notification(
-        group_name=f'class_session_{class_session_id}_notifications',
-        message_type='ai_result_updated_for_teacher', # New message type for frontend
-        message=f"AI validation run for record {attendance_record_id}.",
-        context={
-            'record_id': str(record.id),
-            'aiResult': ai_result_dict, # Send the dictionary directly
-            'class_session_id': str(class_session_id),
-        }
-    )
 
     return JsonResponse({
         'status': 'success',
-        'aiResult': ai_result_dict, # Return the dictionary
+        'aiResult': ai_result_dict,
         'attendance_record_id': str(record.id)
     })
 
 
+# --- Validate Attendance API ---
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')
 @require_POST
 def validate_attendance(request):
-    """
-    API endpoint for teachers to validate a student's attendance submission.
-    Marks the attendance record as 'present'.
-    """
+    """API endpoint for teachers to validate attendance"""
     attendance_record_id = request.POST.get('attendance_record_id')
     if not attendance_record_id:
         return JsonResponse({'status': 'error', 'message': 'Attendance record ID is required.'}, status=400)
 
     try:
         attendance_record = AttendanceRecord.objects.get(id=attendance_record_id)
-        # Ensure this teacher is validating for a class they teach
         if not attendance_record.class_session.course.teachers.filter(id=request.user.id).exists():
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'}, status=403)
-
     except AttendanceRecord.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Attendance record not found.'}, status=404)
 
     attendance_record.is_present = True
     attendance_record.save()
+
+    return JsonResponse({'status': 'success', 'message': 'Attendance validated successfully.'})
 
     # Send Notification to the specific Student whose attendance was validated (personal group)
     student_group_name = f'user_{attendance_record.student.id}_notifications'
@@ -757,24 +774,23 @@ def validate_attendance(request):
             'class_session_id': str(attendance_record.class_session.id),
         }
     )
+
+    return JsonResponse({'status': 'success', 'message': 'Attendance validated successfully.'})
     
+# --- Get Session Submissions API ---
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')
 @require_GET
 def get_session_submissions(request):
-    """
-    API endpoint to fetch attendance submissions for a specific class session.
-    """
+    """API endpoint to fetch attendance submissions for a specific class session"""
     class_session_id = request.GET.get('class_session_id')
     if not class_session_id:
         return JsonResponse({'status': 'error', 'message': 'Class session ID is required.'}, status=400)
 
     try:
         class_session = ClassSession.objects.get(id=class_session_id)
-        # Verify the teacher is associated with this class's course
         if not class_session.course.teachers.filter(id=request.user.id).exists():
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'}, status=403)
-
     except ClassSession.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Class session not found.'}, status=404)
 
@@ -784,15 +800,13 @@ def get_session_submissions(request):
 
     student_submissions_data = []
     for sub in submissions:
-        ai_result_data = sub.ai_result  # Use ai_result directly since it's a JSONField
-        
         student_submissions_data.append({
-            'id': str(sub.id), # Ensure ID is string for JS
+            'id': str(sub.id),
             'name': sub.student.get_full_name() or sub.student.username,
             'timestamp': sub.timestamp.isoformat(),
             'simulatedIp': sub.simulated_ip,
             'simulatedGeolocation': sub.simulated_geolocation,
-            'aiResult': ai_result_data,
+            'aiResult': sub.ai_result,
             'is_present': sub.is_present,
             'class_session_id': str(class_session.id),
         })
@@ -805,9 +819,7 @@ def get_session_submissions(request):
 @user_passes_test(is_student, login_url='/login/')
 @require_GET
 def api_student_attendance_history(request):
-    """
-    API endpoint to get student's attendance history
-    """
+    """API endpoint to get student's attendance history"""
     try:
         limit = int(request.GET.get('limit', 10))
         
@@ -834,11 +846,12 @@ def api_student_attendance_history(request):
             'message': str(e)
         }, status=500)
 
+# --- Student Dashboard ---
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
 def student_dashboard_unified(request):
     """
-    Unified student dashboard with real-time features
+    FIXED: Student dashboard with proper data for student_portal.html template
     """
     # Get user's enrolled courses
     enrolled_courses = Course.objects.filter(
@@ -854,7 +867,7 @@ def student_dashboard_unified(request):
     
     # Get this week's classes
     week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)  # Changed from +7 to +6 for current week
+    week_end = week_start + timedelta(days=6)
     weekly_sessions = ClassSession.objects.filter(
         course__course_enrollments__student=request.user,
         date__range=[week_start, week_end]
@@ -865,16 +878,17 @@ def student_dashboard_unified(request):
         student=request.user
     ).select_related('class_session__course').order_by('-timestamp')[:10]
     
-    # Find current running classes
+    # FIXED: Find current running classes
     now = timezone.now()
+    current_time = now.time()
     current_sessions = ClassSession.objects.filter(
         course__course_enrollments__student=request.user,
         date=today,
-        start_time__lte=now.time(),
-        end_time__gte=now.time()
+        start_time__lte=current_time,
+        end_time__gte=current_time
     ).select_related('course')
     
-    # Prepare JSON data for frontend - using the exact same format as calendar
+    # Prepare JSON data for frontend
     def format_session_for_json(session):
         start_datetime = timezone.make_aware(
             datetime.combine(session.date, session.start_time)
@@ -885,12 +899,12 @@ def student_dashboard_unified(request):
         
         return {
             'id': session.id,
-            'title': session.course.name,  # Add title for calendar compatibility
+            'title': session.course.name,
             'course_name': session.course.name,
             'start_datetime': start_datetime.isoformat(),
             'end_datetime': end_datetime.isoformat(),
-            'start': start_datetime.isoformat(),  # Add for calendar compatibility
-            'end': end_datetime.isoformat(),      # Add for calendar compatibility
+            'start': start_datetime.isoformat(),
+            'end': end_datetime.isoformat(),
         }
     
     today_classes_json = json.dumps([
@@ -914,7 +928,7 @@ def student_dashboard_unified(request):
         format_session_for_json(session) for session in current_sessions
     ])
     
-    # Calendar events for the calendar page (if this view is also used for calendar)
+    # Calendar events for compatibility
     calendar_events = []
     for session in weekly_sessions:
         calendar_events.append({
@@ -934,27 +948,29 @@ def student_dashboard_unified(request):
         'weekly_classes_json': weekly_classes_json,
         'attendance_history_json': attendance_history_json,
         'current_classes_json': current_classes_json,
-        'calendar_events_json': json.dumps(calendar_events),  # For calendar compatibility
+        'calendar_events_json': json.dumps(calendar_events),
+        # Counts for dashboard metrics
+        'today_classes_count': today_sessions.count(),
+        'weekly_classes_count': weekly_sessions.count(),
+        'current_classes_count': current_sessions.count(),
     }
     
-    return render(request, 'student/student_dashboard_unified.html', context)
+    return render(request, 'student/student_portal.html', context)
 
-# API endpoints for real-time updates
+# API endpoints for student dashboard
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
 @require_GET
 def api_student_current_classes(request):
-    """
-    API endpoint to get currently running classes for the student
-    """
+    """API endpoint to get currently running classes for the student"""
     try:
-        # FIXED: Use correct relationship through Enrollment
         now = timezone.now()
+        current_time = now.time()
         current_sessions = ClassSession.objects.filter(
-            course__course_enrollments__student=request.user,  # ✅ CORRECT
+            course__course_enrollments__student=request.user,
             date=now.date(),
-            start_time__lte=now.time(),
-            end_time__gte=now.time()
+            start_time__lte=current_time,
+            end_time__gte=current_time
         ).select_related('course')
         
         current_classes = [{
@@ -982,14 +998,11 @@ def api_student_current_classes(request):
 @user_passes_test(is_student, login_url='/login/')
 @require_GET
 def api_student_today_classes(request):
-    """
-    API endpoint to get today's classes for the student
-    """
+    """API endpoint to get today's classes for the student"""
     try:
-        # FIXED: Use correct relationship through Enrollment
         today = timezone.now().date()
         today_sessions = ClassSession.objects.filter(
-            course__course_enrollments__student=request.user,  # ✅ CORRECT
+            course__course_enrollments__student=request.user,
             date=today
         ).select_related('course').order_by('start_time')
         
@@ -1018,17 +1031,14 @@ def api_student_today_classes(request):
 @user_passes_test(is_student, login_url='/login/')
 @require_GET
 def api_student_weekly_classes(request):
-    """
-    API endpoint to get this week's classes for the student
-    """
+    """API endpoint to get this week's classes for the student"""
     try:
-        # FIXED: Use correct relationship through Enrollment
         today = timezone.now().date()
         week_start = today - timedelta(days=today.weekday())
-        week_end = week_start + timedelta(days=6)  # Current week only
+        week_end = week_start + timedelta(days=6)
         
         weekly_sessions = ClassSession.objects.filter(
-            course__course_enrollments__student=request.user,  # ✅ CORRECT
+            course__course_enrollments__student=request.user,
             date__range=[week_start, week_end]
         ).select_related('course').order_by('date', 'start_time')
         
@@ -1123,31 +1133,26 @@ def student_portal(request):
     """
     Renders the student portal landing page.
     """
-    return render(request, 'student/student_portal.html')
+    return student_dashboard_unified(request)
 
+# Other views that might be referenced
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
 def student_enter_code(request):
-    """
-    Renders the page where students can enter attendance codes.
-    """
+    """Renders the page where students can enter attendance codes"""
     return render(request, 'student/student_enter_code.html')
 
+# Student Calendar View
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
 @require_GET
 def student_calendar(request):
-    """
-    Renders the student's calendar page.
-    Fetches and formats enrolled class sessions for FullCalendar.js.
-    """
-    # by the current user's enrollments.
+    """Renders the student's calendar page"""
     enrolled_class_sessions = ClassSession.objects.filter(
-        course__course_enrollments__student=request.user, 
-        date__gte=timezone.localdate() # Show upcoming classes from today onwards
+        course__course_enrollments__student=request.user,
+        date__gte=timezone.localdate()
     ).order_by('date', 'start_time').select_related('course')
 
-    # Format events for FullCalendar.js
     calendar_events = []
     for session in enrolled_class_sessions:
         calendar_events.append({
@@ -1158,44 +1163,38 @@ def student_calendar(request):
         })
 
     return render(request, 'student/student_calendar.html', {
-        'calendar_events_json': json.dumps(calendar_events) # Pass as JSON string
+        'calendar_events_json': json.dumps(calendar_events)
     })
 
+# --- Submit Attendance API ---
 @login_required(login_url='/login/')
 @user_passes_test(is_student, login_url='/login/')
 @require_POST
 def submit_attendance_code(request):
-    """
-    API endpoint for students to submit an attendance code.
-    Validates the code and creates an AttendanceRecord.
-    """
-    code = request.POST.get('attendance_code').strip().upper() # Clean and standardize code
-    # class_session_id is not directly used for lookup but can be passed for context if needed
+    """API endpoint for students to submit an attendance code"""
+    code = request.POST.get('attendance_code', '').strip().upper()
 
     if not code:
         return JsonResponse({'status': 'error', 'message': 'Attendance code is required.'}, status=400)
 
     try:
-        # Get the code and ensure it's linked to a class session
         attendance_code_obj = AttendanceCode.objects.select_related('class_session__course').get(code=code)
         class_session = attendance_code_obj.class_session
     except AttendanceCode.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Invalid attendance code.'}, status=400)
+        return JsonResponse({'status': 'error', 'message': 'Código de presença inválido.'}, status=400)
 
     if not attendance_code_obj.is_valid():
-        return JsonResponse({'status': 'error', 'message': 'Attendance code has expired.'}, status=400)
+        return JsonResponse({'status': 'error', 'message': 'Código de presença expirado.'}, status=400)
 
-    # Check if student is enrolled in the course associated with this class session
-    # Using 'course_enrollments' here to filter enrollments from the course perspective,
-    # ensuring the student is part of an enrollment for this specific course.
+    # Check if student is enrolled
     if not class_session.course.course_enrollments.filter(student=request.user).exists():
-        return JsonResponse({'status': 'error', 'message': 'You are not enrolled in this course.'}, status=403)
+        return JsonResponse({'status': 'error', 'message': 'Não está inscrito neste curso.'}, status=403)
 
-    # Prevent duplicate submissions for the same session by the same student
+    # Prevent duplicate submissions
     if AttendanceRecord.objects.filter(class_session=class_session, student=request.user).exists():
-        return JsonResponse({'status': 'info', 'message': 'You have already submitted attendance for this class.'}, status=200)
+        return JsonResponse({'status': 'info', 'message': 'Já enviou a presença para esta aula.'}, status=200)
 
-    # Simulate IP and Geolocation data from the client-side JavaScript
+    # Get simulated data
     simulated_ip = request.POST.get('simulated_ip')
     simulated_lat_str = request.POST.get('simulated_latitude')
     simulated_lon_str = request.POST.get('simulated_longitude')
@@ -1203,33 +1202,30 @@ def submit_attendance_code(request):
     simulated_geolocation = None
     if simulated_lat_str and simulated_lon_str:
         try:
-            # Ensure float conversion and handle potential errors
             simulated_geolocation = {
                 'latitude': float(simulated_lat_str),
                 'longitude': float(simulated_lon_str),
             }
         except ValueError:
-            # If conversion fails, log and proceed with None for geolocation
-            print(f"Invalid geolocation data: lat={simulated_lat_str}, lon={simulated_lon_str}")
-            pass
+            logger.warning(f"Invalid geolocation data: lat={simulated_lat_str}, lon={simulated_lon_str}")
 
-    # Create the attendance record
+    # Create attendance record
     attendance_record = AttendanceRecord.objects.create(
         class_session=class_session,
         student=request.user,
-        is_present=False, # Initially False, teacher explicitly validates
+        is_present=False,  # Initially False, teacher validates
         simulated_ip=simulated_ip,
-        simulated_geolocation=simulated_geolocation, # This should be directly saved if JSONField
+        simulated_geolocation=simulated_geolocation,
     )
 
-    # Send real-time notification to the relevant teachers (those teaching this class session)
+    # Send real-time notification to teachers
     teacher_group_name = f'class_session_{class_session.id}_notifications'
     send_group_notification(
         group_name=teacher_group_name,
-        message_type='student_submitted',  # This should match the consumer method name
+        message_type='student_submitted',
         message=f"Student {request.user.username} has submitted attendance for {class_session.course.name}.",
         context={
-            'type': 'student_submitted',  # Add this for frontend handling
+            'type': 'student_submitted',
             'id': str(attendance_record.id),
             'name': request.user.get_full_name() or request.user.username,
             'timestamp': attendance_record.timestamp.isoformat(),
@@ -1238,7 +1234,20 @@ def submit_attendance_code(request):
             'aiResult': None,
             'is_present': attendance_record.is_present,
             'class_session_id': str(class_session.id),
-    }
-)
+        }
+    )
 
     return JsonResponse({'status': 'success', 'message': 'Código de presença enviado com sucesso. Aguarda validação do professor.'})
+
+# Home page view
+def home(request):
+    """Home page that shows different content based on user role"""
+    if request.user.is_authenticated:
+        if request.user.role == 'teacher':
+            return redirect('teacher_dashboard')
+        elif request.user.role == 'student':
+            return redirect('student_dashboard')
+        else:
+            return redirect('dashboard')
+    else:
+        return render(request, 'core/home.html')

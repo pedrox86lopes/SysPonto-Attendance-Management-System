@@ -55,6 +55,37 @@
             font-size: 1.1rem;
         }
 
+        /* Dashboard Metrics Section */
+        .dashboard-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .metric-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .role-selector {
             display: flex;
             justify-content: center;
@@ -334,6 +365,10 @@
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
+
+            .dashboard-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
             
             .role-selector {
                 flex-direction: column;
@@ -373,8 +408,29 @@
         </div>
         {% endif %}
 
+        <!-- Teacher Portal -->
         <div class="portal {% if request.user.role == 'teacher' %}active{% endif %}" id="teacherPortal">
             {% if request.user.role == 'teacher' %}
+            <!-- Dashboard Metrics -->
+            <div class="dashboard-metrics">
+                <div class="metric-card">
+                    <div class="metric-number">{{ active_codes_count|default:0 }}</div>
+                    <div class="metric-label">Códigos Ativos</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ current_day_sessions|default:0 }}</div>
+                    <div class="metric-label">Aulas Hoje</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ total_students_enrolled|default:0 }}</div>
+                    <div class="metric-label">Estudantes Totais</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ pending_validations|default:0 }}</div>
+                    <div class="metric-label">Validações Pendentes</div>
+                </div>
+            </div>
+
             <div class="dashboard">
                 <div class="card">
                     <h3>Gerar código de presença</h3>
@@ -417,12 +473,33 @@
                 </div>
             </div>
             {% else %}
-            <p>YNão tem privilégios de professor ou nenhuma aula ativa hoje.</p>
+            <p>Não tem privilégios de professor ou nenhuma aula ativa hoje.</p>
             {% endif %}
         </div>
 
+        <!-- Student Portal -->
         <div class="portal {% if request.user.role == 'student' %}active{% endif %}" id="studentPortal">
             {% if request.user.role == 'student' %}
+            <!-- Student Dashboard Metrics -->
+            <div class="dashboard-metrics">
+                <div class="metric-card">
+                    <div class="metric-number">{{ current_classes_count|default:0 }}</div>
+                    <div class="metric-label">Aulas a decorrer agora</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ today_classes_count|default:0 }}</div>
+                    <div class="metric-label">Aulas Hoje</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ weekly_classes_count|default:0 }}</div>
+                    <div class="metric-label">Aulas esta semana</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number">{{ enrolled_courses.count|default:0 }}</div>
+                    <div class="metric-label">Cursos Inscritos</div>
+                </div>
+            </div>
+
             <div class="dashboard">
                 <div class="card">
                     <h3>Introduza o código de presença</h3>
@@ -444,6 +521,29 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Current Classes Display -->
+            {% if current_sessions %}
+            <div class="card" style="margin-top: 2rem;">
+                <h3>Aulas a decorrer agora:</h3>
+                {% for session in current_sessions %}
+                <div class="submission-item">
+                    <div class="submission-details">
+                        <div class="student-name">{{ session.course.name }}</div>
+                        <div class="submission-time">{{ session.start_time|time:'H:i' }} - {{ session.end_time|time:'H:i' }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card" style="margin-top: 2rem;">
+                <h3>Aulas a decorrer agora:</h3>
+                <div style="text-align: center; color: #666; padding: 2rem;">
+                    Não há aulas a decorrer no momento.
+                </div>
+            </div>
+            {% endif %}
+
             {% else %}
             <p>Não tem privilégios de estudante.</p>
             {% endif %}
@@ -623,7 +723,7 @@
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-                showStudentStatus('error', 'AOcorreu um erro ao enviar a presença.');
+                showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
             })
             .finally(() => {
                 if (submitBtn) {
@@ -720,7 +820,7 @@
             const statusEl = document.getElementById('connectionStatus');
             if (statusEl) {
                 statusEl.textContent = connected ? 'Conectado' : 'Disconectado';
-                statusEl.className = 'connection-status ' + (connected ? 'conectado' : 'disconectado');
+                statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
             }
         }
 
@@ -878,7 +978,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard initialized');
             console.log('User role:', userRole);
-            console.log('Functions available:', typeof generateCode);
+            console.log('Initial code details:', initialCodeDetails);
 
             if (djangoData.isAuthenticated) {
                 const roleSelector = document.getElementById('roleSelector');
@@ -888,12 +988,26 @@
             updateConnectionStatus(false);
 
             if (userRole === 'teacher') {
+                // FIXED: Show active code on page load if it exists
                 if (initialCodeDetails && initialCodeDetails.code) {
+                    console.log('Displaying initial code:', initialCodeDetails);
                     updateCodeDisplay(
                         initialCodeDetails.code,
                         initialCodeDetails.expires_at,
                         initialCodeDetails.code_status
                     );
+                    
+                    // Set the course name in the display
+                    const sessionSelect = document.getElementById('sessionSelect');
+                    if (sessionSelect && sessionSelect.selectedOptions.length > 0) {
+                        const selectedOption = sessionSelect.selectedOptions[0];
+                        const courseName = selectedOption.getAttribute('data-course-name');
+                        const courseNameDisplay = document.getElementById('currentCodeCourseName');
+                        if (courseNameDisplay && courseName) {
+                            courseNameDisplay.textContent = courseName;
+                        }
+                    }
+                    
                     if (initialCodeDetails.class_session_id) {
                         initWebSocket(initialCodeDetails.class_session_id);
                     }
@@ -955,3 +1069,4 @@
     </script>
 </body>
 </html>
+            

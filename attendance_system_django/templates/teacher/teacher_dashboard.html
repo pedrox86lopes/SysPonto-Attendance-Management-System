@@ -6,7 +6,6 @@
 {% block extra_css %}
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     tailwind.config = {
         theme: {
@@ -25,6 +24,7 @@
 {% endblock extra_css %}
 
 {% block content %}
+
 <body class="bg-gray-50">
     <!-- Navigation Header -->
     <nav class="bg-primary text-white shadow-lg">
@@ -52,7 +52,7 @@
                         <i data-lucide="user" class="h-5 w-5"></i>
                         <span class="text-sm">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
-                    <a href="{% url 'logout' %}" class="text-white hover:text-gray-300">
+                    <a href="#" onclick="logoutConfirm()" class="text-white hover:text-gray-300">
                         <i data-lucide="log-out" class="h-5 w-5"></i>
                     </a>
                 </div>
@@ -61,7 +61,7 @@
     </nav>
 
     <div class="container mx-auto px-4 py-6">
-        <!-- Welcome Section with Active Session -->
+        <!-- Welcome Section -->
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -93,7 +93,7 @@
                     <i data-lucide="users" class="h-8 w-8 text-accent"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-success">
                 <div class="flex items-center justify-between">
                     <div>
@@ -104,7 +104,7 @@
                     <i data-lucide="trending-up" class="h-8 w-8 text-success"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-warning">
                 <div class="flex items-center justify-between">
                     <div>
@@ -115,7 +115,7 @@
                     <i data-lucide="calendar" class="h-8 w-8 text-warning"></i>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
                 <div class="flex items-center justify-between">
                     <div>
@@ -151,10 +151,10 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Selecionar Turma:</label>
                             <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent" id="classSessionSelect">
                                 {% for session in teacher_class_sessions_today %}
-                                <option value="{{ session.id }}"
+                                <option value="{{ session.id }}" 
                                     data-course-name="{{ session.course.name }}"
                                     data-start-time="{{ session.start_time|time:'H:i' }}"
-                                    data-end-time="{{ session.end_time|time:'H:i' }}"
+                                    data-end-time="{{ session.end_time|time:'H:i' }}" 
                                     {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
                                     {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
                                 </option>
@@ -163,7 +163,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <!-- Active Code Display -->
                         <div class="bg-gradient-to-r from-accent to-blue-600 rounded-lg p-6 text-white mb-4" id="activeCodeDisplay" style="display: none;">
                             <div class="text-center">
@@ -186,7 +186,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Action Buttons -->
                         <div class="flex space-x-3">
                             <button class="flex-1 bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors" onclick="generateNewCode()" id="generateCodeBtn">
@@ -337,8 +337,10 @@
     </script>
 
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+        // Initialize Lucide icons ONCE
+        document.addEventListener('DOMContentLoaded', function () {
+            lucide.createIcons();
+        });
 
         // Parse Django data safely
         let djangoData;
@@ -356,7 +358,7 @@
                 apiUrls: {}
             };
         }
-        
+
         // Global variables
         let attendanceSocket = null;
         let currentClassSessionId = null;
@@ -364,7 +366,7 @@
         let codeExpiryTimestamp = null;
         let currentSubmissions = [];
         let currentFilter = 'all';
-        
+
         // Extract data from Django
         const initialCodeDetails = djangoData.initialCodeDetails || {};
         const initialStudentSubmissions = djangoData.initialStudentSubmissions || [];
@@ -373,7 +375,7 @@
         const API_URLS = djangoData.apiUrls || {};
 
         // ===== MAIN FUNCTIONS =====
-        
+
         function generateNewCode() {
             const sessionSelect = document.getElementById('classSessionSelect');
             const classSessionId = sessionSelect ? sessionSelect.value : '';
@@ -399,55 +401,51 @@
                     'class_session_id': classSessionId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    updateCodeDisplay(data.code, data.expires_at);
-                    updateActiveSessionIndicator(sessionSelect.options[sessionSelect.selectedIndex].dataset.courseName);
-                    alert('Código gerado com sucesso!');
-                    initWebSocket(classSessionId);
-                    loadSubmissionsForSession(classSessionId);
-                } else {
-                    alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                alert('Ocorreu um erro ao gerar o código.');
-            })
-            .finally(() => {
-                if (generateBtn) {
-                    generateBtn.disabled = false;
-                    generateBtn.textContent = 'Gerar Novo Código';
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateCodeDisplay(data.code, data.expires_at);
+                        updateActiveSessionIndicator(sessionSelect.options[sessionSelect.selectedIndex].dataset.courseName);
+                        alert('Código gerado com sucesso!');
+                        loadSubmissionsForSession(classSessionId);
+                    } else {
+                        alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro ao gerar o código.');
+                })
+                .finally(() => {
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Gerar Novo Código';
+                    }
+                });
         }
 
         function updateCodeDisplay(code, expiresAtISO) {
             const codeDisplay = document.getElementById('currentCode');
             const activeCodeDisplay = document.getElementById('activeCodeDisplay');
             const statusIndicator = document.getElementById('codeStatusIndicator');
-            const generateBtn = document.getElementById('generateCodeBtn');
             const deactivateBtn = document.getElementById('deactivateBtn');
 
             if (codeDisplay && activeCodeDisplay) {
                 codeDisplay.textContent = code;
                 activeCodeDisplay.style.display = 'block';
-                
+
                 if (statusIndicator) {
                     statusIndicator.innerHTML = `
                         <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span class="text-sm text-green-600">Código ativo</span>
                     `;
                 }
-                
-                if (generateBtn) generateBtn.textContent = 'Gerar Novo Código';
+
                 if (deactivateBtn) deactivateBtn.style.display = 'inline-block';
 
                 codeExpiryTimestamp = new Date(expiresAtISO).getTime();
                 startCodeTimer();
-                
-                // Update active codes count
+
                 document.getElementById('activeCodesCount').textContent = '1';
             }
         }
@@ -455,7 +453,7 @@
         function startCodeTimer() {
             if (codeTimerInterval) clearInterval(codeTimerInterval);
 
-            codeTimerInterval = setInterval(function() {
+            codeTimerInterval = setInterval(function () {
                 const now = new Date().getTime();
                 const timeLeft = codeExpiryTimestamp - now;
                 const timerElement = document.getElementById('timeRemaining');
@@ -463,14 +461,6 @@
                 if (timeLeft <= 0) {
                     clearInterval(codeTimerInterval);
                     if (timerElement) timerElement.textContent = 'Código Expirado';
-                    
-                    const statusIndicator = document.getElementById('codeStatusIndicator');
-                    if (statusIndicator) {
-                        statusIndicator.innerHTML = `
-                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <span class="text-sm text-red-600">Código expirado</span>
-                        `;
-                    }
                     document.getElementById('activeCodesCount').textContent = '0';
                     return;
                 }
@@ -499,29 +489,25 @@
             const activeCodeDisplay = document.getElementById('activeCodeDisplay');
             const statusIndicator = document.getElementById('codeStatusIndicator');
             const deactivateBtn = document.getElementById('deactivateBtn');
-            
+
             if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
             if (deactivateBtn) deactivateBtn.style.display = 'none';
-            
+
             if (statusIndicator) {
                 statusIndicator.innerHTML = `
                     <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
                     <span class="text-sm text-gray-500">Sem código ativo</span>
                 `;
             }
-            
+
             clearInterval(codeTimerInterval);
             document.getElementById('activeCodesCount').textContent = '0';
-            
-            if (attendanceSocket) {
-                attendanceSocket.close();
-            }
         }
 
         function updateActiveSessionIndicator(courseName) {
             const indicator = document.getElementById('activeSessionIndicator');
             const sessionName = document.getElementById('activeSessionName');
-            
+
             if (indicator && sessionName) {
                 sessionName.textContent = courseName;
                 indicator.style.display = 'block';
@@ -531,92 +517,74 @@
         function loadSubmissionsForSession(sessionId) {
             const submissionsList = document.getElementById('submissionsList');
             if (!submissionsList) return;
-            
+
+            submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Carregando envios...</div>';
+            currentClassSessionId = sessionId;
+
             if (!API_URLS.getSessionSubmissions) {
                 submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">URL da API não disponível</div>';
                 return;
             }
 
-            submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Carregando envios...</div>';
-            currentClassSessionId = sessionId;
-
             fetch(API_URLS.getSessionSubmissions + '?class_session_id=' + sessionId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    currentSubmissions = data.submissions || [];
-                    renderSubmissions();
-                    updateSubmissionCounts();
-                } else {
-                    submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Erro ao carregar envios: ' + (data.message || 'Erro desconhecido') + '</div>';
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Falha ao pesquisar envios.</div>';
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentSubmissions = data.submissions || [];
+                        renderSubmissions();
+                        updateSubmissionCounts();
+                    } else {
+                        submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Erro ao carregar envios</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Falha ao pesquisar envios</div>';
+                });
         }
 
         function renderSubmissions() {
             const submissionsList = document.getElementById('submissionsList');
             if (!submissionsList) return;
 
-            let filteredSubmissions = currentSubmissions;
-            
-            // Apply filter
-            if (currentFilter !== 'all') {
-                filteredSubmissions = currentSubmissions.filter(sub => {
-                    switch(currentFilter) {
-                        case 'pending': return !sub.is_present;
-                        case 'validated': return sub.is_present;
-                        case 'suspicious': return sub.aiResult && sub.aiResult.isFraudulent;
-                        default: return true;
-                    }
-                });
-            }
-
-            if (filteredSubmissions.length === 0) {
-                submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhuma submissão encontrada para este filtro.</div>';
+            if (currentSubmissions.length === 0) {
+                submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhuma submissão encontrada.</div>';
                 return;
             }
 
             submissionsList.innerHTML = '';
-            
-            filteredSubmissions.forEach(submission => {
+
+            // Limit submissions to avoid infinite scroll
+            const maxSubmissions = 50;
+            const submissionsToShow = currentSubmissions.slice(0, maxSubmissions);
+
+            submissionsToShow.forEach(submission => {
                 const submissionElement = createSubmissionElement(submission);
                 submissionsList.appendChild(submissionElement);
             });
-            
-            // Update last updated time
-            const lastUpdated = document.getElementById('lastUpdated');
-            if (lastUpdated) {
-                lastUpdated.textContent = 'Atualizado há ' + new Date().toLocaleTimeString('pt-PT');
+
+            if (currentSubmissions.length > maxSubmissions) {
+                const moreElement = document.createElement('div');
+                moreElement.className = 'text-center text-gray-500 py-4';
+                moreElement.textContent = `... e mais ${currentSubmissions.length - maxSubmissions} submissões`;
+                submissionsList.appendChild(moreElement);
             }
         }
 
         function createSubmissionElement(submission) {
             const div = document.createElement('div');
-            
-            let statusClass, statusText, borderClass, bgClass;
-            
+            let statusText = 'Pendente';
+            let bgClass = 'bg-yellow-50 border-yellow-200';
+
             if (submission.is_present) {
-                statusClass = 'border-green-200 bg-green-50';
                 statusText = 'Presente';
-                borderClass = 'border-green-200';
-                bgClass = 'bg-green-50';
+                bgClass = 'bg-green-50 border-green-200';
             } else if (submission.aiResult && submission.aiResult.isFraudulent) {
-                statusClass = 'border-red-200 bg-red-50';
                 statusText = 'Suspeito';
-                borderClass = 'border-red-200';
-                bgClass = 'bg-red-50';
-            } else {
-                statusClass = 'border-yellow-200 bg-yellow-50';
-                statusText = 'Pendente';
-                borderClass = 'border-yellow-200';
-                bgClass = 'bg-yellow-50';
+                bgClass = 'bg-red-50 border-red-200';
             }
 
-            div.className = `flex items-center justify-between p-4 border ${borderClass} ${bgClass} rounded-lg`;
+            div.className = `flex items-center justify-between p-4 border ${bgClass} rounded-lg`;
             div.innerHTML = `
                 <div class="flex items-center space-x-4">
                     <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center border">
@@ -624,28 +592,19 @@
                     </div>
                     <div>
                         <p class="font-semibold text-gray-900">${submission.name || 'Nome Desconhecido'}</p>
-                        <p class="text-sm text-gray-500">Submetido há ${getTimeAgo(submission.timestamp)} • IP: ${submission.simulatedIp || '--'}</p>
-                        ${submission.aiResult ? `<div class="flex items-center mt-1">
-                            <i data-lucide="${submission.aiResult.isFraudulent ? 'alert-triangle' : 'shield-check'}" class="h-3 w-3 ${submission.aiResult.isFraudulent ? 'text-red-500' : 'text-green-500'} mr-1"></i>
-                            <span class="text-xs ${submission.aiResult.isFraudulent ? 'text-red-600' : 'text-green-600'}">${submission.aiResult.fraudExplanation}</span>
-                        </div>` : ''}
+                        <p class="text-sm text-gray-500">Submetido • IP: ${submission.simulatedIp || '--'}</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(submission)}">${statusText}</span>
                     ${!submission.is_present ? `
-                        <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors" onclick="runAiValidation('${submission.id}', '${currentClassSessionId}')">
-                            <i data-lucide="brain-circuit" class="h-3 w-3 mr-1 inline"></i>
-                            IA
-                        </button>
-                        <button class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors" onclick="validateAttendance('${submission.id}', '${currentClassSessionId}')">
-                            <i data-lucide="check" class="h-3 w-3 mr-1 inline"></i>
+                        <button class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors" onclick="validateAttendance('${submission.id}')">
                             Validar
                         </button>
                     ` : ''}
                 </div>
             `;
-            
+
             return div;
         }
 
@@ -655,32 +614,19 @@
             return 'bg-yellow-100 text-yellow-800';
         }
 
-        function getTimeAgo(timestamp) {
-            const now = new Date();
-            const submissionTime = new Date(timestamp);
-            const diffMs = now - submissionTime;
-            const diffMins = Math.floor(diffMs / 60000);
-            
-            if (diffMins < 1) return 'agora';
-            if (diffMins < 60) return diffMins + ' min';
-            return Math.floor(diffMins / 60) + 'h';
-        }
-
         function updateSubmissionCounts() {
             const all = currentSubmissions.length;
             const pending = currentSubmissions.filter(s => !s.is_present).length;
             const validated = currentSubmissions.filter(s => s.is_present).length;
             const suspicious = currentSubmissions.filter(s => s.aiResult && s.aiResult.isFraudulent).length;
-            
+
             document.getElementById('allCount').textContent = all;
             document.getElementById('pendingCount').textContent = pending;
             document.getElementById('validatedCount').textContent = validated;
             document.getElementById('suspiciousCount').textContent = suspicious;
-            
-            // Update dashboard stats
             document.getElementById('pendingSubmissions').textContent = pending;
             document.getElementById('submissionCount').textContent = all + ' submissões';
-            
+
             if (all > 0) {
                 const rate = Math.round((validated / all) * 100);
                 document.getElementById('todayAttendanceRate').textContent = rate + '%';
@@ -688,50 +634,12 @@
             }
         }
 
-        function runAiValidation(recordId, sessionId) {
-            if (!API_URLS.runAiValidation) {
-                alert('URL da API não disponível.');
-                return;
-            }
-            
-            fetch(API_URLS.runAiValidation, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': CSRF_TOKEN
-                },
-                body: new URLSearchParams({
-                    'attendance_record_id': recordId,
-                    'class_session_id': sessionId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Update the submission in our local array
-                    const submissionIndex = currentSubmissions.findIndex(s => s.id === recordId);
-                    if (submissionIndex !== -1) {
-                        currentSubmissions[submissionIndex].aiResult = data.aiResult;
-                        renderSubmissions();
-                        updateSubmissionCounts();
-                    }
-                    alert('Validação da IA concluída!');
-                } else {
-                    alert('Erro ao executar validação da IA: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Ocorreu um erro durante a validação da IA.');
-            });
-        }
-
-        function validateAttendance(recordId, sessionId) {
+        function validateAttendance(recordId) {
             if (!API_URLS.validateAttendance) {
                 alert('URL da API não disponível.');
                 return;
             }
-            
+
             fetch(API_URLS.validateAttendance, {
                 method: 'POST',
                 headers: {
@@ -742,25 +650,24 @@
                     'attendance_record_id': recordId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Update the submission in our local array
-                    const submissionIndex = currentSubmissions.findIndex(s => s.id === recordId);
-                    if (submissionIndex !== -1) {
-                        currentSubmissions[submissionIndex].is_present = true;
-                        renderSubmissions();
-                        updateSubmissionCounts();
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const submissionIndex = currentSubmissions.findIndex(s => s.id === recordId);
+                        if (submissionIndex !== -1) {
+                            currentSubmissions[submissionIndex].is_present = true;
+                            renderSubmissions();
+                            updateSubmissionCounts();
+                        }
+                        alert('Presença validada com sucesso!');
+                    } else {
+                        alert('Erro ao validar presença: ' + (data.message || 'Erro desconhecido'));
                     }
-                    alert('Presença validada com sucesso!');
-                } else {
-                    alert('Erro ao validar presença: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Ocorreu um erro durante a validação.');
-            });
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro durante a validação.');
+                });
         }
 
         function validateAllPending() {
@@ -769,10 +676,10 @@
                 alert('Não há submissões pendentes para validar.');
                 return;
             }
-            
+
             if (confirm(`Validar todas as ${pendingSubmissions.length} submissões pendentes?`)) {
                 pendingSubmissions.forEach(submission => {
-                    validateAttendance(submission.id, currentClassSessionId);
+                    validateAttendance(submission.id);
                 });
             }
         }
@@ -782,84 +689,34 @@
             const filterButtons = document.querySelectorAll('.filter-btn');
             filterButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    // Remove active class from all buttons
                     filterButtons.forEach(b => {
                         b.classList.remove('bg-accent', 'text-white');
                         b.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
                     });
-                    
-                    // Add active class to clicked button
+
                     btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
                     btn.classList.add('bg-accent', 'text-white');
-                    
+
                     currentFilter = btn.dataset.filter;
                     renderSubmissions();
                 });
             });
         }
 
-        // WebSocket functionality
-        function initWebSocket(sessionId) {
-            if (attendanceSocket && attendanceSocket.readyState === WebSocket.OPEN) {
-                if (currentClassSessionId !== sessionId) {
-                    attendanceSocket.close();
-                } else {
-                    return;
-                }
+        // Session selection change handler
+        function setupSessionSelector() {
+            const sessionSelect = document.getElementById('classSessionSelect');
+            if (sessionSelect) {
+                sessionSelect.addEventListener('change', function (e) {
+                    const selectedSessionId = e.target.value;
+                    if (selectedSessionId) {
+                        loadSubmissionsForSession(selectedSessionId);
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        const courseName = selectedOption.dataset.courseName;
+                        updateActiveSessionIndicator(courseName);
+                    }
+                });
             }
-            
-            currentClassSessionId = sessionId;
-            const wsPath = 'ws://' + window.location.host.replace(':8000', ':8001') + '/ws/attendance/class_session_' + sessionId + '/';
-            attendanceSocket = new WebSocket(wsPath);
-
-            attendanceSocket.onopen = function(e) {
-                console.log('WebSocket conectado');
-                updateConnectionStatus(true);
-            };
-
-            attendanceSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                console.log('Mensagem WebSocket:', data);
-                
-                if (data.context && data.context.type === 'student_submitted') {
-                    // Add new submission to our array
-                    currentSubmissions.unshift(data.context);
-                    renderSubmissions();
-                    updateSubmissionCounts();
-                    
-                    // Show notification
-                    showNotification(`Nova submissão de ${data.context.name}`);
-                }
-            };
-
-            attendanceSocket.onclose = function(e) {
-                console.log('WebSocket desconectado');
-                updateConnectionStatus(false);
-            };
-
-            attendanceSocket.onerror = function(e) {
-                console.error('Erro WebSocket:', e);
-                updateConnectionStatus(false);
-            };
-        }
-
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connectionStatus');
-            if (statusEl) {
-                statusEl.className = connected ? 'w-3 h-3 bg-success rounded-full' : 'w-3 h-3 bg-danger rounded-full';
-            }
-        }
-
-        function showNotification(message) {
-            const notificationCount = document.getElementById('notificationCount');
-            if (notificationCount) {
-                const current = parseInt(notificationCount.textContent) || 0;
-                notificationCount.textContent = current + 1;
-                notificationCount.style.display = current >= 0 ? 'flex' : 'none';
-            }
-            
-            // You could implement a toast notification here
-            console.log('Notification:', message);
         }
 
         // Utility functions
@@ -879,37 +736,17 @@
             alert('Funcionalidade de configurações em desenvolvimento!');
         }
 
-        // Session selection change handler
-        function setupSessionSelector() {
-            const sessionSelect = document.getElementById('classSessionSelect');
-            if (sessionSelect) {
-                sessionSelect.addEventListener('change', function(e) {
-                    const selectedSessionId = e.target.value;
-                    if (selectedSessionId) {
-                        loadSubmissionsForSession(selectedSessionId);
-                        
-                        const selectedOption = e.target.options[e.target.selectedIndex];
-                        const courseName = selectedOption.dataset.courseName;
-                        updateActiveSessionIndicator(courseName);
-                    }
-                });
-            }
-        }
-
         // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard do Professor inicializado');
-            
+
             // Initialize UI components
             initializeFilters();
             setupSessionSelector();
-            
+
             // Load initial data if available
             if (initialCodeDetails && initialCodeDetails.code) {
                 updateCodeDisplay(initialCodeDetails.code, initialCodeDetails.expires_at);
-                if (initialCodeDetails.class_session_id) {
-                    initWebSocket(initialCodeDetails.class_session_id);
-                }
             }
 
             if (initialStudentSubmissions && initialStudentSubmissions.length > 0) {
@@ -921,10 +758,23 @@
             if (activeClassSessionIdInitial && activeClassSessionIdInitial !== 'null') {
                 loadSubmissionsForSession(activeClassSessionIdInitial);
             }
-            
-            // Re-initialize Lucide icons after dynamic content
+
+            // Initialize icons ONCE at the end
             lucide.createIcons();
         });
+    </script>
+
+    <!-- Logout Form -->
+    <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
+        {% csrf_token %}
+    </form>
+
+    <script>
+        function logoutConfirm() {
+            if (confirm('Tem a certeza de que quer sair?')) {
+                document.getElementById('logout-form').submit();
+            }
+        }
     </script>
 </body>
 {% endblock %}
