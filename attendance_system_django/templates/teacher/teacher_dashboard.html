@@ -1,666 +1,930 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dashboard do Formador{% endblock %}
+{% block title %}Dashboard do Formador | SysPonto{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Custom styles to match the "small-box" look if not using AdminLTE directly */
-        .info-box-custom {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px;
-            border-radius: 8px;
-            color: #fff;
-            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
-            margin-bottom: 1rem;
-            min-height: 90px; /* Ensure consistent height */
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#1f2937',
+                    accent: '#3b82f6',
+                    success: '#10b981',
+                    warning: '#f59e0b',
+                    danger: '#ef4444'
+                }
+            }
         }
-        .info-box-custom .content {
-            flex-grow: 1;
-        }
-        .info-box-custom h3 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin: 0;
-            padding: 0;
-            line-height: 1;
-        }
-        .info-box-custom p {
-            font-size: 1rem;
-            margin: 0;
-            opacity: 0.8;
-        }
-        .info-box-custom .icon {
-            font-size: 3rem;
-            opacity: 0.7;
-            margin-left: 15px;
-        }
-
-        /* Background colors (adjust to your theme's color palette if different) */
-        .bg-gradient-info { background: linear-gradient(135deg, #0dcaf0, #0a98b8) !important; }
-        .bg-gradient-success { background: linear-gradient(135deg, #198754, #146c43) !important; }
-        .bg-gradient-warning { background: linear-gradient(135deg, #ffc107, #d9a400) !important; }
-        .bg-gradient-danger { background: linear-gradient(135deg, #dc3545, #b02a37) !important; }
-    </style>
+    }
+</script>
 {% endblock extra_css %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-lg-10 mx-auto">
-            <h1 class="mb-4 text-center text-primary">Dashboard do Formador</h1>
-            <p class="text-center text-muted">Gira as presenças das suas turmas.</p>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <i data-lucide="shield-check" class="h-8 w-8"></i>
+                    <h1 class="text-xl font-bold">SysPonto - Professor</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button class="text-white hover:text-gray-300 relative" id="notificationBtn">
+                            <i data-lucide="bell" class="h-6 w-6"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center" id="notificationCount">0</span>
+                        </button>
+                    </div>
+                    <!-- Connection Status -->
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-success rounded-full" id="connectionStatus"></div>
+                        <span class="text-sm">Conectado</span>
+                    </div>
+                    <!-- User Info -->
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="user" class="h-5 w-5"></i>
+                        <span class="text-sm">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </div>
+                    <a href="{% url 'logout' %}" class="text-white hover:text-gray-300">
+                        <i data-lucide="log-out" class="h-5 w-5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-            {# --- Cartões de Métricas do Painel de Controlo --- #}
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box-custom bg-gradient-info">
-                        <div class="content">
-                            <h3>{{ total_students_enrolled }}</h3>
-                            <p>Total de Alunos Inscritos</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                    </div>
+    <div class="container mx-auto px-4 py-6">
+        <!-- Welcome Section with Active Session -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{ request.user.get_full_name|default:request.user.username }}! 👋</h2>
+                    <p class="text-gray-600">Faça a gestão das suas turmas e monitoriza a presença em tempo real.</p>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box-custom bg-gradient-success">
-                        <div class="content">
-                            <h3>{{ total_courses_taught }}</h3>
-                            <p>Total de Disciplinas Lecionadas</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-book"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box-custom bg-gradient-warning">
-                        <div class="content">
-                            <h3>{{ current_day_sessions }}</h3>
-                            <p>Sessões de Hoje</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-calendar-day"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="info-box-custom bg-gradient-danger">
-                        <div class="content">
-                            <h3>{{ pending_validations }}</h3>
-                            <p>Validações Pendentes</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-exclamation-triangle"></i>
+                <!-- Active Session Indicator -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4" id="activeSessionIndicator" style="display: none;">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+                        <div>
+                            <p class="font-semibold text-green-800">Aula Ativa</p>
+                            <p class="text-sm text-green-600" id="activeSessionName">--</p>
                         </div>
                     </div>
                 </div>
             </div>
-            {# --- Fim dos Cartões de Métricas do Painel de Controlo --- #}
+        </div>
 
-            {# Secção de Geração de Código #}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Gerar Código de Presença (10 minutos)</h5>
+        <!-- Quick Stats Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-accent">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Submissões Pendentes</p>
+                        <p class="text-2xl font-bold text-accent" id="pendingSubmissions">0</p>
+                        <p class="text-sm text-gray-500">Aguardam validação</p>
+                    </div>
+                    <i data-lucide="users" class="h-8 w-8 text-accent"></i>
                 </div>
-                <div class="card-body">
-                    {% if teacher_class_sessions_today %}
-                    <form id="generateCodeForm" class="row g-3 align-items-end">
-                        {% csrf_token %}
-                        <div class="col-md-8">
-                            <label for="classSessionSelect" class="form-label">Selecionar Sessão de Turma para o Código:</label>
-                            <select class="form-select" id="classSessionSelect" name="class_session_id" required>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-success">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Taxa de Presença Hoje</p>
+                        <p class="text-2xl font-bold text-success" id="todayAttendanceRate">--%</p>
+                        <p class="text-sm text-success" id="todayAttendanceText">-- alunos presentes</p>
+                    </div>
+                    <i data-lucide="trending-up" class="h-8 w-8 text-success"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-warning">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Aulas Hoje</p>
+                        <p class="text-2xl font-bold text-warning" id="todaySessionCount">{{ teacher_class_sessions_today|length }}</p>
+                        <p class="text-sm text-gray-500">{{ teacher_class_sessions_today|length }} sessões programadas</p>
+                    </div>
+                    <i data-lucide="calendar" class="h-8 w-8 text-warning"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Códigos Ativos</p>
+                        <p class="text-2xl font-bold text-purple-500" id="activeCodesCount">0</p>
+                        <p class="text-sm text-gray-500">Em circulação</p>
+                    </div>
+                    <i data-lucide="key" class="h-8 w-8 text-purple-500"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Main Controls -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Code Generation Section -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i data-lucide="key" class="h-5 w-5 mr-2 text-accent"></i>
+                                Gerar Código de Presença
+                            </h3>
+                            <div class="flex items-center space-x-2" id="codeStatusIndicator">
+                                <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                <span class="text-sm text-gray-500">Sem código ativo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <!-- Class Selection -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Selecionar Turma:</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent" id="classSessionSelect">
                                 {% for session in teacher_class_sessions_today %}
                                 <option value="{{ session.id }}"
                                     data-course-name="{{ session.course.name }}"
                                     data-start-time="{{ session.start_time|time:'H:i' }}"
                                     data-end-time="{{ session.end_time|time:'H:i' }}"
                                     {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
-                                    {{ session.course.name }} ({{ session.course.code }}) - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
+                                    {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
                                 </option>
+                                {% empty %}
+                                <option value="">Não há aulas hoje.</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            {# New Generate Code Button #}
-                            <button type="button" class="btn btn-primary w-100" id="triggerGenerateCodeBtn">Gerar Código</button>
+                        
+                        <!-- Active Code Display -->
+                        <div class="bg-gradient-to-r from-accent to-blue-600 rounded-lg p-6 text-white mb-4" id="activeCodeDisplay" style="display: none;">
+                            <div class="text-center">
+                                <p class="text-sm opacity-90 mb-2">Código Atual:</p>
+                                <div class="flex items-center justify-center space-x-4">
+                                    <p class="text-4xl font-mono font-bold tracking-widest" id="currentCode">------</p>
+                                    <button class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-2 transition-colors" onclick="copyCodeToClipboard()">
+                                        <i data-lucide="copy" class="h-5 w-5"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-3 flex items-center justify-center space-x-4">
+                                    <div class="flex items-center text-sm">
+                                        <i data-lucide="clock" class="h-4 w-4 mr-1"></i>
+                                        <span id="timeRemaining">Expira em: --:--</span>
+                                    </div>
+                                    <div class="flex items-center text-sm">
+                                        <i data-lucide="users" class="h-4 w-4 mr-1"></i>
+                                        <span id="submissionCount">0 submissões</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                    <hr>
-                    <div id="codeDisplayArea" class="text-center mt-3">
-                        {% if initial_code_details.code %}
-                        <h4 class="text-secondary">Código Atual para <span id="currentCodeCourseName">
-                            {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }}{% endif %}
-                        </span>:</h4>
-                        <div class="d-flex justify-content-center align-items-center">
-                            <h2 class="display-4 text-success fw-bold me-3" id="generatedCode">{{ initial_code_details.code }}</h2>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('#generatedCode')">
-                                <i class="fas fa-copy"></i> Copiar
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-3">
+                            <button class="flex-1 bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors" onclick="generateNewCode()" id="generateCodeBtn">
+                                Gerar Novo Código
+                            </button>
+                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" onclick="deactivateCode()" id="deactivateBtn" style="display: none;">
+                                Desactivar
+                            </button>
+                            <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors" onclick="validateAllPending()" id="validateAllBtn">
+                                Validar Todas
                             </button>
                         </div>
-                        <p class="text-muted" id="codeExpiresAt">Expira em: <span id="expiresTime">{{ initial_code_details.expires_at|date:'H:i:s' }}</span></p>
-                        {% else %}
-                        <p class="text-muted" id="generatedCodePlaceholder">Nenhum código ativo para a sessão de turma selecionada.</p>
-                        <p class="text-muted" id="codeExpiresAt"></p>
-                        {% endif %}
                     </div>
-                    {% else %}
-                    <p class="text-muted text-center">Não tem turmas ativas ou futuras hoje para gerar códigos.</p>
-                    {% endif %}
                 </div>
-            </div>
 
-            {# Secção de Submissões de Alunos #}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Submissões de Alunos para <span id="submissionsForClass">
-                        {% if active_class_session_for_display %}{{ active_class_session_for_display.course.name }} ({{ active_class_session_for_display.start_time|time:'H:i' }} - {{ active_class_session_for_display.end_time|time:'H:i' }}){% else %}Nenhuma Turma Selecionada{% endif %}
-                    </span></h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Nome do Aluno</th>
-                                    <th>Hora da Submissão</th>
-                                    <th>Estado</th>
-                                    <th>Resultado da IA</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentSubmissionsTableBody">
-                                {# Submissões iniciais carregadas via template Django #}
-                                {% for submission in initial_student_submissions_parsed %}
-                                <tr id="record-{{ submission.id }}" class="{% if submission.is_present %}table-success{% else %}table-warning{% endif %}">
-                                    <td>{{ submission.name }}</td>
-                                    <td>{{ submission.timestamp|date:'H:i:s' }}</td>
-                                    <td id="status-{{ submission.id }}">
-                                        {% if submission.is_present %}
-                                            <span class="badge bg-success">Presente</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Pendente</span>
-                                        {% endif %}
-                                    </td>
-                                    <td id="ai-result-{{ submission.id }}">
-                                        {% if submission.aiResult %}
-                                            <span class="badge {% if submission.aiResult.isFraudulent %}bg-danger{% else %}bg-info{% endif %}">
-                                                IA: {% if submission.aiResult.isFraudulent %}Fraude{% else %}OK{% endif %}
-                                            </span>
-                                            <small class="text-muted d-block">{{ submission.aiResult.fraudExplanation }}</small>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Não Executado</span>
-                                        {% endif %}
-                                    </td>
-                                    <td id="actions-{{ submission.id }}">
-                                        {% if not submission.is_present %}
-                                        <button class="btn btn-sm btn-outline-success validate-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Validar</button>
-                                        {% endif %}
-                                        <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="{{ submission.id }}" data-class-session-id="{{ active_class_session_for_display.id }}">Executar IA</button>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">Nenhuma submissão de aluno ainda para esta sessão de turma.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <!-- Real-time Submissions -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i data-lucide="activity" class="h-5 w-5 mr-2 text-green-500"></i>
+                                Submissões em Tempo Real
+                            </h3>
+                            <div class="flex items-center space-x-3">
+                                <button class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200 transition-colors" onclick="exportSubmissions()">
+                                    <i data-lucide="download" class="h-4 w-4 mr-1 inline"></i>
+                                    Exportar
+                                </button>
+                                <div class="text-sm text-gray-500" id="lastUpdated">Nunca atualizado</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                    <div class="p-6">
+                        <!-- Filters -->
+                        <div class="flex space-x-2 mb-4">
+                            <button class="px-3 py-1 bg-accent text-white rounded-full text-sm filter-btn active" data-filter="all">Todos (<span id="allCount">0</span>)</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="pending">Pendentes (<span id="pendingCount">0</span>)</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="validated">Validados (<span id="validatedCount">0</span>)</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="suspicious">Suspeitos (<span id="suspiciousCount">0</span>)</button>
+                        </div>
 
-            {# Secção de Gráficos #}
-            <div class="row">
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="card-title">Presenças vs. Pendentes</h5>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool text-white" data-bs-toggle="collapse" data-bs-target="#pieChartCardBody" aria-expanded="true"><i class="fas fa-minus"></i></button>
-                            </div>
-                        </div>
-                        <div class="card-body collapse show" id="pieChartCardBody">
-                            <div class="chart">
-                                <canvas id="pieChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="card-title">Submissões por Disciplina (Hoje)</h5>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool text-white" data-bs-toggle="collapse" data-bs-target="#barChartCardBody" aria-expanded="true"><i class="fas fa-minus"></i></button>
-                            </div>
-                        </div>
-                        <div class="card-body collapse show" id="barChartCardBody">
-                            <div class="chart">
-                                <canvas id="barChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                        <!-- Submissions List -->
+                        <div class="space-y-3 max-h-96 overflow-y-auto" id="submissionsList">
+                            <div class="text-center text-gray-500 py-8">
+                                Selecione uma sessão para ver os envios.
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Right Column - Side Panels -->
+            <div class="space-y-6">
+                <!-- Today's Schedule -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="calendar-days" class="h-5 w-5 mr-2 text-accent"></i>
+                            Horário de Hoje
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-3" id="todayScheduleList">
+                        {% for session in teacher_class_sessions_today %}
+                        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-semibold text-blue-800">{{ session.course.name }}</p>
+                                    <p class="text-sm text-blue-600">{{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Programada</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-gray-500 py-4">
+                            Não há aulas programadas para hoje.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Ações Rápidas</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <button class="w-full flex items-center justify-center px-4 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors" onclick="exportReport()">
+                            <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2"></i>
+                            Exportar Relatório
+                        </button>
+                        <a href="{% url 'teacher_dashboard' %}" class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+                            <i data-lucide="bar-chart-3" class="h-4 w-4 mr-2"></i>
+                            Análise Detalhada
+                        </a>
+                        <button class="w-full flex items-center justify-center px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors" onclick="sendNotification()">
+                            <i data-lucide="message-circle" class="h-4 w-4 mr-2"></i>
+                            Enviar Notificação
+                        </button>
+                        <button class="w-full flex items-center justify-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors" onclick="openSettings()">
+                            <i data-lucide="settings" class="h-4 w-4 mr-2"></i>
+                            Configurações
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Alerts -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="alert-circle" class="h-5 w-5 mr-2 text-red-500"></i>
+                            Alertas do Sistema
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-3" id="systemAlerts">
+                        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-start space-x-2">
+                                <i data-lucide="info" class="h-4 w-4 text-blue-500 mt-0.5"></i>
+                                <div>
+                                    <p class="font-medium text-blue-800 text-sm">Sistema Atualizado</p>
+                                    <p class="text-xs text-blue-600">Todas as funcionalidades estão operacionais</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-{# Certifique-se de que o jQuery esteja carregado para o AJAX existente e para a inicialização do Chart.js #}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-{# Chart.js CDN #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-{# Font Awesome for icons (if not in base.html) #}
-<script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
-
-<script>
-    // Parse initial data passed from Django context
-    const initialCodeDetails = JSON.parse('{{ initial_code_details|escapejs }}');
-    const initialSubmissions = JSON.parse('{{ initial_student_submissions|escapejs }}');
-    let activeClassSessionId = '{{ active_class_session_id }}'; // Make this 'let' so it can be updated
-    const csrfToken = '{{ csrf_token }}';
-
-    // Helper to copy text to clipboard
-    function copyToClipboard(elementSelector) {
-        const textToCopy = document.querySelector(elementSelector).textContent;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            alert('Código copiado para a área de transferência!');
-        }).catch(err => {
-            console.error('Falha ao copiar:', err);
-        });
-    }
-
-    // Function to render a single submission row
-    function renderSubmissionRow(submission) {
-        const isPresentBadge = submission.is_present ? '<span class="badge bg-success">Presente</span>' : '<span class="badge bg-warning text-dark">Pendente</span>';
-        let aiResultBadge = '<span class="badge bg-secondary">Não Executado</span>';
-        let aiExplanation = '';
-        if (submission.aiResult) {
-            const aiBgClass = submission.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
-            aiResultBadge = `<span class="badge ${aiBgClass}">IA: ${submission.aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>`;
-            aiExplanation = `<small class="text-muted d-block">${submission.aiResult.fraudExplanation}</small>`;
+    <!-- Django data injection -->
+    <script id="django-data" type="application/json">
+    {
+        "initialCodeDetails": {{ initial_code_details_json|default:"{}"|safe }},
+        "initialStudentSubmissions": {{ initial_student_submissions_json|default:"[]"|safe }},
+        "activeClassSessionIdInitial": "{{ active_class_session_id_initial|default:""|safe }}",
+        "userRole": "teacher",
+        "csrfToken": "{{ csrf_token|safe }}",
+        "isAuthenticated": {{ request.user.is_authenticated|yesno:"true,false" }},
+        "apiUrls": {
+            "generateCode": "{% url 'generate_code_api_view' %}",
+            "runAiValidation": "{% url 'run_ai_validation' %}",
+            "validateAttendance": "{% url 'validate_attendance' %}",
+            "getSessionSubmissions": "{% url 'get_session_submissions' %}"
         }
-
-        const validateBtnHtml = submission.is_present ? '' : `<button class="btn btn-sm btn-outline-success validate-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Validar</button>`;
-        const rowClass = submission.is_present ? 'table-success' : 'table-warning';
-
-        return `
-            <tr id="record-${submission.id}" class="${rowClass}">
-                <td>${submission.name}</td>
-                <td>${new Date(submission.timestamp).toLocaleTimeString('pt-PT')}</td> {# Changed to pt-PT #}
-                <td id="status-${submission.id}">${isPresentBadge}</td>
-                <td id="ai-result-${submission.id}">${aiResultBadge}${aiExplanation}</td>
-                <td id="actions-${submission.id}">
-                    ${validateBtnHtml}
-                    <button class="btn btn-sm btn-outline-info ai-run-btn" data-record-id="${submission.id}" data-class-session-id="${submission.class_session_id}">Executar IA</button>
-                </td>
-            </tr>
-        `;
     }
+    </script>
 
-    // Function to attach event listeners to buttons (Validar, Executar IA)
-    function attachButtonListeners() {
-        document.querySelectorAll('.validate-btn').forEach(button => {
-            button.onclick = async (event) => {
-                const recordId = event.target.dataset.recordId;
-                try {
-                    const response = await fetch('{% url "validate_attendance" %}', {
-                        method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `attendance_record_id=${recordId}`
-                    });
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        const row = document.getElementById(`record-${recordId}`);
-                        if (row) {
-                            row.classList.remove('table-warning');
-                            row.classList.add('table-success');
-                        }
-                        const statusCell = document.getElementById(`status-${recordId}`);
-                        if (statusCell) {
-                            statusCell.innerHTML = '<span class="badge bg-success">Presente</span>';
-                        }
-                        event.target.remove(); // Remove the button after validation
-                    } else {
-                        alert(`Erro ao validar presença: ${data.message}`);
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Ocorreu um erro durante a validação.');
-                }
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Parse Django data safely
+        let djangoData;
+        try {
+            djangoData = JSON.parse(document.getElementById('django-data').textContent);
+        } catch (e) {
+            console.error('Error parsing Django data:', e);
+            djangoData = {
+                initialCodeDetails: {},
+                initialStudentSubmissions: [],
+                activeClassSessionIdInitial: "",
+                userRole: "teacher",
+                csrfToken: "",
+                isAuthenticated: false,
+                apiUrls: {}
             };
-        });
-
-        document.querySelectorAll('.ai-run-btn').forEach(button => {
-            button.onclick = async (event) => {
-                const recordId = event.target.dataset.recordId;
-                const classSessionId = event.target.dataset.classSessionId;
-                try {
-                    const response = await fetch('{% url "run_ai_validation" %}', {
-                        method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `attendance_record_id=${recordId}&class_session_id=${classSessionId}`
-                    });
-                    const data = await response.json();
-                    if (data.status === 'success' && data.aiResult) {
-                        const aiResultCell = document.getElementById(`ai-result-${recordId}`);
-                        if (aiResultCell) {
-                            const aiBgClass = data.aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
-                            aiResultCell.innerHTML = `
-                                <span class="badge ${aiBgClass}">IA: ${data.aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>
-                                <small class="text-muted d-block">${data.aiResult.fraudExplanation}</small>
-                            `;
-                        }
-                    } else {
-                        alert(`Erro ao executar validação de IA: ${data.message}`);
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Ocorreu um erro durante a validação de IA.');
-                }
-            };
-        });
-    }
-
-    // --- WebSocket for Real-time Notifications ---
-    let attendanceSocket = null;
-
-    function connectWebSocket(sessionId) {
-        if (attendanceSocket && attendanceSocket.readyState === WebSocket.OPEN) {
-            attendanceSocket.close(); // Close existing connection if any
         }
-        if (!sessionId) {
-            console.warn("Nenhum ID de sessão de turma ativo fornecido para conexão WebSocket. Não é possível conectar.");
-            return;
-        }
+        
+        // Global variables
+        let attendanceSocket = null;
+        let currentClassSessionId = null;
+        let codeTimerInterval = null;
+        let codeExpiryTimestamp = null;
+        let currentSubmissions = [];
+        let currentFilter = 'all';
+        
+        // Extract data from Django
+        const initialCodeDetails = djangoData.initialCodeDetails || {};
+        const initialStudentSubmissions = djangoData.initialStudentSubmissions || [];
+        const activeClassSessionIdInitial = djangoData.activeClassSessionIdInitial || "";
+        const CSRF_TOKEN = djangoData.csrfToken || "";
+        const API_URLS = djangoData.apiUrls || {};
 
-        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const hostname = '127.0.0.1:8001';
-        const wsUrl = `${protocol}${hostname}/ws/attendance/class_session_${sessionId}/`;
+        // ===== MAIN FUNCTIONS =====
+        
+        function generateNewCode() {
+            const sessionSelect = document.getElementById('classSessionSelect');
+            const classSessionId = sessionSelect ? sessionSelect.value : '';
 
-        attendanceSocket = new WebSocket(wsUrl);
-
-        attendanceSocket.onopen = function(e) {
-            console.log("Conexão WebSocket estabelecida para a sessão:", sessionId);
-        };
-
-        attendanceSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            // Ensure the notification is for the currently active session on the dashboard
-            if (data.type === 'send_notification' && data.context && data.context.class_session_id == activeClassSessionId) {
-                if (data.message_type === 'student_submitted') {
-                    const newSubmission = data.context;
-                    console.log("Nova submissão de aluno recebida:", newSubmission);
-                    const tbody = document.getElementById('studentSubmissionsTableBody');
-                    const noSubmissionsRow = document.getElementById('noSubmissionsRow');
-                    if (noSubmissionsRow) {
-                        noSubmissionsRow.remove();
-                    }
-                    tbody.insertAdjacentHTML('afterbegin', renderSubmissionRow(newSubmission));
-                    attachButtonListeners(); // Re-attach listeners for new buttons
-                }
-                else if (data.message_type === 'code_generated_for_teacher') {
-                    const codeContext = data.context;
-                    // Update the UI if the generated code is for the currently selected session
-                    if (codeContext.class_session_id == activeClassSessionId) {
-                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                        const generatedCodeElement = document.getElementById('generatedCode');
-                        if (generatedCodeElement) {
-                             generatedCodeElement.textContent = codeContext.code;
-                        }
-
-                        const expiresTimeElement = document.getElementById('expiresTime');
-                        if (expiresTimeElement) {
-                            expiresTimeElement.textContent = new Date(codeContext.expires_at).toLocaleTimeString('pt-PT');
-                        }
-                         const currentCodeCourseNameElement = document.getElementById('currentCodeCourseName');
-                         if(currentCodeCourseNameElement) {
-                            const selectedOption = document.getElementById('classSessionSelect').querySelector(`option[value="${codeContext.class_session_id}"]`);
-                            if (selectedOption) {
-                                currentCodeCourseNameElement.textContent = selectedOption.dataset.courseName;
-                            }
-                         }
-                        document.getElementById('codeDisplayArea').style.display = 'block';
-                    }
-                }
-                else if (data.message_type === 'attendance_validated_for_teacher') {
-                    const recordId = data.context.record_id;
-                    const row = document.getElementById(`record-${recordId}`);
-                    if (row) {
-                        row.classList.remove('table-warning');
-                        row.classList.add('table-success');
-                    }
-                    const statusCell = document.getElementById(`status-${recordId}`);
-                    if (statusCell) {
-                        statusCell.innerHTML = '<span class="badge bg-success">Presente</span>';
-                    }
-                    const validateBtn = document.querySelector(`#actions-${recordId} .validate-btn`);
-                    if (validateBtn) {
-                        validateBtn.remove();
-                    }
-                }
-                else if (data.message_type === 'ai_result_updated_for_teacher') {
-                    const recordId = data.context.record_id;
-                    const aiResult = data.context.aiResult;
-                    const aiResultCell = document.getElementById(`ai-result-${recordId}`);
-                    if (aiResultCell) {
-                        const aiBgClass = aiResult.isFraudulent ? 'bg-danger' : 'bg-info';
-                        aiResultCell.innerHTML = `
-                            <span class="badge ${aiBgClass}">IA: ${aiResult.isFraudulent ? 'Fraude' : 'OK'}</span>
-                            <small class="text-muted d-block">${aiResult.fraudExplanation}</small>
-                        `;
-                    }
-                }
+            if (!classSessionId) {
+                alert('Selecione uma sessão de aula.');
+                return;
             }
-        };
 
-        attendanceSocket.onclose = function(e) {
-            console.log('WebSocket fechado para a sessão:', sessionId, ' Código:', e.code, ' Razão:', e.reason);
-        };
+            const generateBtn = document.getElementById('generateCodeBtn');
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Gerando...';
+            }
 
-        attendanceSocket.onerror = function(e) {
-            console.error('Erro no WebSocket:', e);
-        };
-    }
-
-    // --- Page Load and Event Listeners ---
-    document.addEventListener('DOMContentLoaded', () => {
-        attachButtonListeners();
-
-        if (activeClassSessionId) {
-            connectWebSocket(activeClassSessionId);
-        }
-
-        const classSessionSelect = document.getElementById('classSessionSelect');
-        const triggerGenerateCodeBtn = document.getElementById('triggerGenerateCodeBtn'); // Get the new button
-
-        if (classSessionSelect) {
-            classSessionSelect.addEventListener('change', async (event) => {
-                const selectedSessionId = event.target.value;
-                const selectedOption = event.target.options[event.target.selectedIndex];
-                const courseName = selectedOption.dataset.courseName;
-                const startTime = selectedOption.dataset.startTime;
-                const endTime = selectedOption.dataset.endTime;
-
-                document.getElementById('submissionsForClass').textContent = `${courseName} (${startTime} - ${endTime})`;
-
-                activeClassSessionId = selectedSessionId;
-
-                connectWebSocket(selectedSessionId);
-
-                const tbody = document.getElementById('studentSubmissionsTableBody');
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">A carregar submissões...</td></tr>';
-                try {
-                    const submissionsResponse = await fetch(`{% url "get_session_submissions" %}?class_session_id=${selectedSessionId}`);
-                    const submissionsData = await submissionsResponse.json();
-
-                    tbody.innerHTML = '';
-                    if (submissionsData.status === 'success' && submissionsData.submissions.length > 0) {
-                        submissionsData.submissions.forEach(submission => {
-                            tbody.insertAdjacentHTML('beforeend', renderSubmissionRow(submission));
-                        });
-                        attachButtonListeners();
-                    } else {
-                        tbody.innerHTML = '<tr id="noSubmissionsRow"><td colspan="5" class="text-center text-muted">Nenhuma submissão de aluno ainda para esta sessão de turma.</td></tr>';
-                    }
-                } catch (error) {
-                    console.error('Erro ao buscar submissões:', error);
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Erro ao carregar submissões.</td></tr>';
+            fetch(API_URLS.generateCode, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'class_session_id': classSessionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    updateCodeDisplay(data.code, data.expires_at);
+                    updateActiveSessionIndicator(sessionSelect.options[sessionSelect.selectedIndex].dataset.courseName);
+                    alert('Código gerado com sucesso!');
+                    initWebSocket(classSessionId);
+                    loadSubmissionsForSession(classSessionId);
+                } else {
+                    alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
                 }
-
-                try {
-                    const codeResponse = await fetch(`/api/get-code-for-session/?class_session_id=${selectedSessionId}`);
-                    const codeData = await codeResponse.json();
-                    if (codeData.status === 'success' && codeData.code_details) {
-                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                        document.getElementById('generatedCode').textContent = codeData.code_details.code;
-                        document.getElementById('expiresTime').textContent = new Date(codeData.code_details.expires_at).toLocaleTimeString('pt-PT');
-                        document.getElementById('currentCodeCourseName').textContent = courseName;
-                        document.getElementById('codeDisplayArea').style.display = 'block';
-                    } else {
-                        document.getElementById('generatedCodePlaceholder').style.display = 'block';
-                        document.getElementById('generatedCode').textContent = '';
-                        document.getElementById('expiresTime').textContent = '';
-                        document.getElementById('currentCodeCourseName').textContent = courseName;
-                        document.getElementById('codeDisplayArea').style.display = 'block';
-                    }
-                } catch (error) {
-                    console.error('Erro ao buscar código para a sessão:', error);
-                    document.getElementById('generatedCodePlaceholder').textContent = 'Erro ao carregar código.';
-                    document.getElementById('codeDisplayArea').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Erro de pesquisa:', error);
+                alert('Ocorreu um erro ao gerar o código.');
+            })
+            .finally(() => {
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Gerar Novo Código';
                 }
             });
         }
 
-        // Handle the new "Gerar Código" button click
-        if (triggerGenerateCodeBtn) {
-            triggerGenerateCodeBtn.addEventListener('click', async () => {
-                const selectedSessionId = classSessionSelect.value; // Get the currently selected session ID
-                if (!selectedSessionId) {
-                    alert('Por favor, selecione uma sessão de turma para gerar o código.');
+        function updateCodeDisplay(code, expiresAtISO) {
+            const codeDisplay = document.getElementById('currentCode');
+            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
+            const statusIndicator = document.getElementById('codeStatusIndicator');
+            const generateBtn = document.getElementById('generateCodeBtn');
+            const deactivateBtn = document.getElementById('deactivateBtn');
+
+            if (codeDisplay && activeCodeDisplay) {
+                codeDisplay.textContent = code;
+                activeCodeDisplay.style.display = 'block';
+                
+                if (statusIndicator) {
+                    statusIndicator.innerHTML = `
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="text-sm text-green-600">Código ativo</span>
+                    `;
+                }
+                
+                if (generateBtn) generateBtn.textContent = 'Gerar Novo Código';
+                if (deactivateBtn) deactivateBtn.style.display = 'inline-block';
+
+                codeExpiryTimestamp = new Date(expiresAtISO).getTime();
+                startCodeTimer();
+                
+                // Update active codes count
+                document.getElementById('activeCodesCount').textContent = '1';
+            }
+        }
+
+        function startCodeTimer() {
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
+
+            codeTimerInterval = setInterval(function() {
+                const now = new Date().getTime();
+                const timeLeft = codeExpiryTimestamp - now;
+                const timerElement = document.getElementById('timeRemaining');
+
+                if (timeLeft <= 0) {
+                    clearInterval(codeTimerInterval);
+                    if (timerElement) timerElement.textContent = 'Código Expirado';
+                    
+                    const statusIndicator = document.getElementById('codeStatusIndicator');
+                    if (statusIndicator) {
+                        statusIndicator.innerHTML = `
+                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span class="text-sm text-red-600">Código expirado</span>
+                        `;
+                    }
+                    document.getElementById('activeCodesCount').textContent = '0';
                     return;
                 }
 
-                const formData = new FormData();
-                formData.append('class_session_id', selectedSessionId);
+                const minutes = Math.floor(timeLeft / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
 
-                try {
-                    const response = await fetch('{% url "generate_code_api_view" %}', {
-                        method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken },
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        document.getElementById('generatedCodePlaceholder').style.display = 'none';
-                        document.getElementById('generatedCode').textContent = data.code;
-                        document.getElementById('expiresTime').textContent = new Date(data.expires_at).toLocaleTimeString('pt-PT');
-
-                        const selectedOption = classSessionSelect.options[classSessionSelect.selectedIndex];
-                        document.getElementById('currentCodeCourseName').textContent = selectedOption.dataset.courseName;
-
-                        document.getElementById('codeDisplayArea').style.display = 'block';
-
-                        alert('Código gerado com sucesso!');
-                    } else {
-                        alert(`Erro ao gerar código: ${data.message}`);
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Ocorreu um erro durante a geração do código.');
+                if (timerElement) {
+                    timerElement.textContent = 'Expira em: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
                 }
+            }, 1000);
+        }
+
+        function copyCodeToClipboard() {
+            const codeElement = document.getElementById('currentCode');
+            if (codeElement) {
+                navigator.clipboard.writeText(codeElement.textContent).then(() => {
+                    alert('Código copiado para a área de transferência!');
+                }).catch(err => {
+                    console.error('Falha ao copiar:', err);
+                });
+            }
+        }
+
+        function deactivateCode() {
+            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
+            const statusIndicator = document.getElementById('codeStatusIndicator');
+            const deactivateBtn = document.getElementById('deactivateBtn');
+            
+            if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
+            if (deactivateBtn) deactivateBtn.style.display = 'none';
+            
+            if (statusIndicator) {
+                statusIndicator.innerHTML = `
+                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span class="text-sm text-gray-500">Sem código ativo</span>
+                `;
+            }
+            
+            clearInterval(codeTimerInterval);
+            document.getElementById('activeCodesCount').textContent = '0';
+            
+            if (attendanceSocket) {
+                attendanceSocket.close();
+            }
+        }
+
+        function updateActiveSessionIndicator(courseName) {
+            const indicator = document.getElementById('activeSessionIndicator');
+            const sessionName = document.getElementById('activeSessionName');
+            
+            if (indicator && sessionName) {
+                sessionName.textContent = courseName;
+                indicator.style.display = 'block';
+            }
+        }
+
+        function loadSubmissionsForSession(sessionId) {
+            const submissionsList = document.getElementById('submissionsList');
+            if (!submissionsList) return;
+            
+            if (!API_URLS.getSessionSubmissions) {
+                submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">URL da API não disponível</div>';
+                return;
+            }
+
+            submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Carregando envios...</div>';
+            currentClassSessionId = sessionId;
+
+            fetch(API_URLS.getSessionSubmissions + '?class_session_id=' + sessionId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentSubmissions = data.submissions || [];
+                    renderSubmissions();
+                    updateSubmissionCounts();
+                } else {
+                    submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Erro ao carregar envios: ' + (data.message || 'Erro desconhecido') + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Erro de pesquisa:', error);
+                submissionsList.innerHTML = '<div class="text-center text-red-500 py-4">Falha ao pesquisar envios.</div>';
             });
         }
 
-        // --- Initial Code Generation Form Submission (if you still want it for direct form submit) ---
-        // I've moved the logic to the new `triggerGenerateCodeBtn` click listener for clarity.
-        // If you still have a form submit event, ensure it doesn't conflict.
-        // For simplicity, the form's submit event is now only handled by the explicit button click.
+        function renderSubmissions() {
+            const submissionsList = document.getElementById('submissionsList');
+            if (!submissionsList) return;
 
-
-    });
-
-    // --- Chart.js Initialization ---
-    $(document).ready(function(){
-        // Gráfico de Pizza: Presenças vs. Pendentes
-        var pieChartCanvas = $('#pieChart').get(0).getContext('2d');
-        var pieData = {
-            labels: ['Presente', 'Pendente'],
-            datasets: [
-                {
-                    data:[
-                        {{ total_present_attendance|default:0 }},
-                        {{ total_pending_attendance|default:0 }}
-                    ],
-                    backgroundColor : ['#198754', '#ffc107'], // Cores de sucesso e aviso do Bootstrap
-                }
-            ]
-        };
-        var pieOptions = {
-            maintainAspectRatio : false,
-            responsive : true,
-        };
-        new Chart(pieChartCanvas, {
-            type: 'pie',
-            data: pieData,
-            options: pieOptions
-        });
-
-        // Gráfico de Barras: Submissões por Disciplina (Hoje)
-        var subject_names = JSON.parse('{{ course_names_for_chart|safe }}');
-        var submissions_counts = JSON.parse('{{ submissions_per_course_for_chart|safe }}');
-
-        var barChartCanvas = $('#barChart').get(0).getContext('2d');
-        var barChartData = {
-            labels  : subject_names,
-            datasets: [
-                {
-                    label               : 'Submissões Hoje',
-                    backgroundColor     : '#0dcaf0', // Cor info do Bootstrap
-                    borderColor         : '#0dcaf0',
-                    data                : submissions_counts
-                }
-            ]
-        };
-
-        var barOptions = {
-            responsive              : true,
-            maintainAspectRatio     : false,
-            scales: {
-                x: {
-                    grid: {
-                        display: false
+            let filteredSubmissions = currentSubmissions;
+            
+            // Apply filter
+            if (currentFilter !== 'all') {
+                filteredSubmissions = currentSubmissions.filter(sub => {
+                    switch(currentFilter) {
+                        case 'pending': return !sub.is_present;
+                        case 'validated': return sub.is_present;
+                        case 'suspicious': return sub.aiResult && sub.aiResult.isFraudulent;
+                        default: return true;
                     }
+                });
+            }
+
+            if (filteredSubmissions.length === 0) {
+                submissionsList.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhuma submissão encontrada para este filtro.</div>';
+                return;
+            }
+
+            submissionsList.innerHTML = '';
+            
+            filteredSubmissions.forEach(submission => {
+                const submissionElement = createSubmissionElement(submission);
+                submissionsList.appendChild(submissionElement);
+            });
+            
+            // Update last updated time
+            const lastUpdated = document.getElementById('lastUpdated');
+            if (lastUpdated) {
+                lastUpdated.textContent = 'Atualizado há ' + new Date().toLocaleTimeString('pt-PT');
+            }
+        }
+
+        function createSubmissionElement(submission) {
+            const div = document.createElement('div');
+            
+            let statusClass, statusText, borderClass, bgClass;
+            
+            if (submission.is_present) {
+                statusClass = 'border-green-200 bg-green-50';
+                statusText = 'Presente';
+                borderClass = 'border-green-200';
+                bgClass = 'bg-green-50';
+            } else if (submission.aiResult && submission.aiResult.isFraudulent) {
+                statusClass = 'border-red-200 bg-red-50';
+                statusText = 'Suspeito';
+                borderClass = 'border-red-200';
+                bgClass = 'bg-red-50';
+            } else {
+                statusClass = 'border-yellow-200 bg-yellow-50';
+                statusText = 'Pendente';
+                borderClass = 'border-yellow-200';
+                bgClass = 'bg-yellow-50';
+            }
+
+            div.className = `flex items-center justify-between p-4 border ${borderClass} ${bgClass} rounded-lg`;
+            div.innerHTML = `
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center border">
+                        <span class="font-semibold text-sm">${submission.name ? submission.name.substring(0, 2).toUpperCase() : 'UN'}</span>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">${submission.name || 'Nome Desconhecido'}</p>
+                        <p class="text-sm text-gray-500">Submetido há ${getTimeAgo(submission.timestamp)} • IP: ${submission.simulatedIp || '--'}</p>
+                        ${submission.aiResult ? `<div class="flex items-center mt-1">
+                            <i data-lucide="${submission.aiResult.isFraudulent ? 'alert-triangle' : 'shield-check'}" class="h-3 w-3 ${submission.aiResult.isFraudulent ? 'text-red-500' : 'text-green-500'} mr-1"></i>
+                            <span class="text-xs ${submission.aiResult.isFraudulent ? 'text-red-600' : 'text-green-600'}">${submission.aiResult.fraudExplanation}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(submission)}">${statusText}</span>
+                    ${!submission.is_present ? `
+                        <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors" onclick="runAiValidation('${submission.id}', '${currentClassSessionId}')">
+                            <i data-lucide="brain-circuit" class="h-3 w-3 mr-1 inline"></i>
+                            IA
+                        </button>
+                        <button class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors" onclick="validateAttendance('${submission.id}', '${currentClassSessionId}')">
+                            <i data-lucide="check" class="h-3 w-3 mr-1 inline"></i>
+                            Validar
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function getStatusBadgeClass(submission) {
+            if (submission.is_present) return 'bg-green-100 text-green-800';
+            if (submission.aiResult && submission.aiResult.isFraudulent) return 'bg-red-100 text-red-800';
+            return 'bg-yellow-100 text-yellow-800';
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const submissionTime = new Date(timestamp);
+            const diffMs = now - submissionTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'agora';
+            if (diffMins < 60) return diffMins + ' min';
+            return Math.floor(diffMins / 60) + 'h';
+        }
+
+        function updateSubmissionCounts() {
+            const all = currentSubmissions.length;
+            const pending = currentSubmissions.filter(s => !s.is_present).length;
+            const validated = currentSubmissions.filter(s => s.is_present).length;
+            const suspicious = currentSubmissions.filter(s => s.aiResult && s.aiResult.isFraudulent).length;
+            
+            document.getElementById('allCount').textContent = all;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('validatedCount').textContent = validated;
+            document.getElementById('suspiciousCount').textContent = suspicious;
+            
+            // Update dashboard stats
+            document.getElementById('pendingSubmissions').textContent = pending;
+            document.getElementById('submissionCount').textContent = all + ' submissões';
+            
+            if (all > 0) {
+                const rate = Math.round((validated / all) * 100);
+                document.getElementById('todayAttendanceRate').textContent = rate + '%';
+                document.getElementById('todayAttendanceText').textContent = validated + '/' + all + ' alunos presentes';
+            }
+        }
+
+        function runAiValidation(recordId, sessionId) {
+            if (!API_URLS.runAiValidation) {
+                alert('URL da API não disponível.');
+                return;
+            }
+            
+            fetch(API_URLS.runAiValidation, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
+                body: new URLSearchParams({
+                    'attendance_record_id': recordId,
+                    'class_session_id': sessionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update the submission in our local array
+                    const submissionIndex = currentSubmissions.findIndex(s => s.id === recordId);
+                    if (submissionIndex !== -1) {
+                        currentSubmissions[submissionIndex].aiResult = data.aiResult;
+                        renderSubmissions();
+                        updateSubmissionCounts();
                     }
+                    alert('Validação da IA concluída!');
+                } else {
+                    alert('Erro ao executar validação da IA: ' + (data.message || 'Erro desconhecido'));
                 }
-            },
-            plugins: {
-                legend: {
-                    display: true
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Ocorreu um erro durante a validação da IA.');
+            });
+        }
+
+        function validateAttendance(recordId, sessionId) {
+            if (!API_URLS.validateAttendance) {
+                alert('URL da API não disponível.');
+                return;
+            }
+            
+            fetch(API_URLS.validateAttendance, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: new URLSearchParams({
+                    'attendance_record_id': recordId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update the submission in our local array
+                    const submissionIndex = currentSubmissions.findIndex(s => s.id === recordId);
+                    if (submissionIndex !== -1) {
+                        currentSubmissions[submissionIndex].is_present = true;
+                        renderSubmissions();
+                        updateSubmissionCounts();
+                    }
+                    alert('Presença validada com sucesso!');
+                } else {
+                    alert('Erro ao validar presença: ' + (data.message || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Ocorreu um erro durante a validação.');
+            });
+        }
+
+        function validateAllPending() {
+            const pendingSubmissions = currentSubmissions.filter(s => !s.is_present);
+            if (pendingSubmissions.length === 0) {
+                alert('Não há submissões pendentes para validar.');
+                return;
+            }
+            
+            if (confirm(`Validar todas as ${pendingSubmissions.length} submissões pendentes?`)) {
+                pendingSubmissions.forEach(submission => {
+                    validateAttendance(submission.id, currentClassSessionId);
+                });
+            }
+        }
+
+        // Filter functionality
+        function initializeFilters() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(b => {
+                        b.classList.remove('bg-accent', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                    });
+                    
+                    // Add active class to clicked button
+                    btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                    btn.classList.add('bg-accent', 'text-white');
+                    
+                    currentFilter = btn.dataset.filter;
+                    renderSubmissions();
+                });
+            });
+        }
+
+        // WebSocket functionality
+        function initWebSocket(sessionId) {
+            if (attendanceSocket && attendanceSocket.readyState === WebSocket.OPEN) {
+                if (currentClassSessionId !== sessionId) {
+                    attendanceSocket.close();
+                } else {
+                    return;
                 }
             }
-        };
+            
+            currentClassSessionId = sessionId;
+            const wsPath = 'ws://' + window.location.host.replace(':8000', ':8001') + '/ws/attendance/class_session_' + sessionId + '/';
+            attendanceSocket = new WebSocket(wsPath);
 
-        new Chart(barChartCanvas, {
-            type: 'bar',
-            data: barChartData,
-            options: barOptions
+            attendanceSocket.onopen = function(e) {
+                console.log('WebSocket conectado');
+                updateConnectionStatus(true);
+            };
+
+            attendanceSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('Mensagem WebSocket:', data);
+                
+                if (data.context && data.context.type === 'student_submitted') {
+                    // Add new submission to our array
+                    currentSubmissions.unshift(data.context);
+                    renderSubmissions();
+                    updateSubmissionCounts();
+                    
+                    // Show notification
+                    showNotification(`Nova submissão de ${data.context.name}`);
+                }
+            };
+
+            attendanceSocket.onclose = function(e) {
+                console.log('WebSocket desconectado');
+                updateConnectionStatus(false);
+            };
+
+            attendanceSocket.onerror = function(e) {
+                console.error('Erro WebSocket:', e);
+                updateConnectionStatus(false);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+                statusEl.className = connected ? 'w-3 h-3 bg-success rounded-full' : 'w-3 h-3 bg-danger rounded-full';
+            }
+        }
+
+        function showNotification(message) {
+            const notificationCount = document.getElementById('notificationCount');
+            if (notificationCount) {
+                const current = parseInt(notificationCount.textContent) || 0;
+                notificationCount.textContent = current + 1;
+                notificationCount.style.display = current >= 0 ? 'flex' : 'none';
+            }
+            
+            // You could implement a toast notification here
+            console.log('Notification:', message);
+        }
+
+        // Utility functions
+        function exportSubmissions() {
+            alert('Funcionalidade de exportação em desenvolvimento!');
+        }
+
+        function exportReport() {
+            alert('Funcionalidade de relatório em desenvolvimento!');
+        }
+
+        function sendNotification() {
+            alert('Funcionalidade de notificação em desenvolvimento!');
+        }
+
+        function openSettings() {
+            alert('Funcionalidade de configurações em desenvolvimento!');
+        }
+
+        // Session selection change handler
+        function setupSessionSelector() {
+            const sessionSelect = document.getElementById('classSessionSelect');
+            if (sessionSelect) {
+                sessionSelect.addEventListener('change', function(e) {
+                    const selectedSessionId = e.target.value;
+                    if (selectedSessionId) {
+                        loadSubmissionsForSession(selectedSessionId);
+                        
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        const courseName = selectedOption.dataset.courseName;
+                        updateActiveSessionIndicator(courseName);
+                    }
+                });
+            }
+        }
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard do Professor inicializado');
+            
+            // Initialize UI components
+            initializeFilters();
+            setupSessionSelector();
+            
+            // Load initial data if available
+            if (initialCodeDetails && initialCodeDetails.code) {
+                updateCodeDisplay(initialCodeDetails.code, initialCodeDetails.expires_at);
+                if (initialCodeDetails.class_session_id) {
+                    initWebSocket(initialCodeDetails.class_session_id);
+                }
+            }
+
+            if (initialStudentSubmissions && initialStudentSubmissions.length > 0) {
+                currentSubmissions = initialStudentSubmissions;
+                renderSubmissions();
+                updateSubmissionCounts();
+            }
+
+            if (activeClassSessionIdInitial && activeClassSessionIdInitial !== 'null') {
+                loadSubmissionsForSession(activeClassSessionIdInitial);
+            }
+            
+            // Re-initialize Lucide icons after dynamic content
+            lucide.createIcons();
         });
-    });
-</script>
-
-
-{% endblock extra_js %}
+    </script>
+</body>
+{% endblock %}

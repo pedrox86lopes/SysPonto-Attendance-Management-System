@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -6,431 +5,286 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard do Formando | SysPonto</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            max-width: 1200px;
-            width: 95%;
-            margin: 1rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .header h1 {
-            color: #333;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .nav-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 10px;
-            text-decoration: none;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
-            color: white;
-            text-decoration: none;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e0e0e0;
-        }
-
-        .card h3 {
-            color: #333;
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
-            font-weight: 500;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 0.8rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 10px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-top: 0.5rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin: 0.5rem 0;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .class-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 1rem;
-        }
-
-        .class-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.3s ease;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-        }
-
-        .class-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .class-item.current {
-            background: linear-gradient(135deg, #e8f5e8, #f0fff0);
-            border: 2px solid #28a745;
-        }
-
-        .class-item.upcoming {
-            background: linear-gradient(135deg, #fff3cd, #fdf6e3);
-            border: 2px solid #ffc107;
-        }
-
-        .class-item.past {
-            background: #f8f9fa;
-            opacity: 0.7;
-        }
-
-        .class-info {
-            flex-grow: 1;
-        }
-
-        .class-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1rem;
-        }
-
-        .class-time {
-            color: #666;
-            font-size: 0.9rem;
-            margin-top: 0.2rem;
-        }
-
-        .class-status {
-            font-size: 0.8rem;
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-weight: 500;
-        }
-
-        .class-status.current {
-            background: #28a745;
-            color: white;
-        }
-
-        .class-status.upcoming {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .class-status.past {
-            background: #6c757d;
-            color: white;
-        }
-
-        .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            z-index: 1000;
-        }
-
-        .connection-status.connected {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .connection-status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .history-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 1rem;
-        }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.3s ease;
-        }
-
-        .history-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .quick-code-input {
-            font-size: 1.5rem;
-            text-align: center;
-            letter-spacing: 0.2rem;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        .calendar-preview {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
-
-        .calendar-day {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .calendar-day:last-child {
-            border-bottom: none;
-        }
-
-        .day-classes {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            
-            .nav-links {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .class-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1f2937',
+                        accent: '#3b82f6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
+                    }
+                }
             }
         }
-    </style>
+    </script>
 </head>
-<body>
-    <div class="connection-status" id="connectionStatus">Connecting...</div>
-    
-    <div class="container">
-        <div class="header">
-            <h1>Dashboard do Formando</h1>
-            <p>Bem-Vindo, {{ request.user.get_full_name|default:request.user.username }}!</p>
-        </div>
-
-        <div class="nav-links">
-            <a href="{% url 'dashboard' %}" class="nav-btn">
-                📝 Entrar código de presença
-            </a>
-            <a href="{% url 'student_calendar' %}" class="nav-btn">
-                📅 Calendário das aulas
-            </a>
-            <a href="{% url 'home' %}" class="nav-btn">
-                🏠 Principal
-            </a>
-        </div>
-
-        <div class="dashboard">
-            <!-- Quick Code Entry Card -->
-            <div class="card">
-                <h3>Digite o código</h3>
-                <div class="form-group">
-                    <label for="quickAttendanceCode">EIntroduza o código de presença para a aula atual:</label>
-                    <input type="text" id="quickAttendanceCode" class="quick-code-input" placeholder="XXXXXX" maxlength="6">
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <i data-lucide="graduation-cap" class="h-8 w-8"></i>
+                    <h1 class="text-xl font-bold">SysPonto - Formando</h1>
                 </div>
-                <button class="btn" onclick="submitQuickAttendance()" id="quickSubmitBtn">Enviar presença</button>
-                
-                <div id="quickCodeStatus"></div>
-                
-                <!-- Current Running Classes -->
-                <div id="currentClassesDisplay" style="margin-top: 1rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: #333;">Aulas a decorrer agora:</h4>
-                    <div id="currentClassesList">
-                        <div style="text-align: center; color: #666; padding: 1rem;">
-                            A carregar aulas atuais...
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-success rounded-full" id="connectionStatus"></div>
+                        <span class="text-sm">Conectado</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="user" class="h-5 w-5"></i>
+                        <span class="text-sm">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </div>
+                    <a href="{% url 'logout' %}" class="text-white hover:text-gray-300">
+                        <i data-lucide="log-out" class="h-5 w-5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Welcome Section -->
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, {{ request.user.get_full_name|default:request.user.username }}! 👋</h2>
+            <p class="text-gray-600">Aqui está o resumo das suas aulas de hoje.</p>
+        </div>
+
+        <!-- Quick Navigation Pills -->
+        <div class="flex flex-wrap justify-center gap-3 mb-6">
+            <a href="{% url 'dashboard' %}" class="inline-flex items-center px-4 py-2 bg-accent text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-medium">
+                <i data-lucide="key" class="h-4 w-4 mr-2"></i>
+                Entrar código de presença
+            </a>
+            <a href="{% url 'student_calendar' %}" class="inline-flex items-center px-4 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors text-sm font-medium">
+                <i data-lucide="calendar-days" class="h-4 w-4 mr-2"></i>
+                Calendário das aulas
+            </a>
+            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors text-sm font-medium">
+                <i data-lucide="home" class="h-4 w-4 mr-2"></i>
+                Principal
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-success">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-600">Taxa de Presença</p>
+                        <p class="text-2xl font-bold text-success" id="attendanceRate">--</p>
+                    </div>
+                    <i data-lucide="trending-up" class="h-8 w-8 text-success"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-accent">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-600">Aulas Hoje</p>
+                        <p class="text-2xl font-bold text-accent" id="todayClassCount">0</p>
+                    </div>
+                    <i data-lucide="calendar" class="h-8 w-8 text-accent"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-warning">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-600">Próxima Aula</p>
+                        <p class="text-lg font-bold text-warning" id="nextClassTime">--</p>
+                    </div>
+                    <i data-lucide="clock" class="h-8 w-8 text-warning"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-600">Aulas esta Semana</p>
+                        <p class="text-2xl font-bold text-purple-500" id="weeklyClassCount">0</p>
+                    </div>
+                    <i data-lucide="star" class="h-8 w-8 text-purple-500"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Quick Code Entry -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="key" class="h-5 w-5 mr-2 text-accent"></i>
+                            Marcar Presença
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex space-x-4">
+                            <input 
+                                type="text" 
+                                id="quickAttendanceCode"
+                                placeholder="Digite o código (6 dígitos)"
+                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-center text-xl font-mono uppercase tracking-widest focus:ring-2 focus:ring-accent focus:border-accent"
+                                maxlength="6"
+                            >
+                            <button 
+                                class="px-6 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                                onclick="submitQuickAttendance()"
+                                id="quickSubmitBtn"
+                            >
+                                Enviar
+                            </button>
+                        </div>
+                        <div id="quickCodeStatus" class="mt-4"></div>
+                        
+                        <!-- Current Running Classes -->
+                        <div id="currentClassesDisplay" class="mt-6">
+                            <h4 class="text-md font-medium text-gray-700 mb-3 flex items-center">
+                                <i data-lucide="activity" class="h-4 w-4 mr-2 text-green-500"></i>
+                                Aulas a decorrer agora:
+                            </h4>
+                            <div id="currentClassesList">
+                                <div class="text-center text-gray-500 py-4">
+                                    A carregar aulas atuais...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Schedule -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="calendar-days" class="h-5 w-5 mr-2 text-accent"></i>
+                            Horário de Hoje
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4" id="todaySchedule">
+                            <div class="text-center text-gray-500 py-4">
+                                A carregar as aulas de hoje...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Preview -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="calendar" class="h-5 w-5 mr-2 text-purple-500"></i>
+                            Antevisão desta Semana
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div id="weeklyPreview">
+                            <div class="text-center text-gray-500 py-4">
+                                A carregar a programação semanal...
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Today's Schedule Card -->
-            <div class="card">
-                <h3>Programação de hoje</h3>
-                <div class="class-list" id="todaySchedule">
-                    <div style="text-align: center; color: #666; padding: 2rem;">
-                        A carregar as aulas de hoje...
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Ações Rápidas</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <a href="{% url 'student_calendar' %}" class="w-full flex items-center justify-center px-4 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            <i data-lucide="calendar" class="h-4 w-4 mr-2"></i>
+                            Ver Calendário
+                        </a>
+                        <button class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors" onclick="showAchievements()">
+                            <i data-lucide="trophy" class="h-4 w-4 mr-2"></i>
+                            Conquistas
+                        </button>
+                        <button class="w-full flex items-center justify-center px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors" onclick="exportReport()">
+                            <i data-lucide="download" class="h-4 w-4 mr-2"></i>
+                            Exportar Relatório
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Weekly Preview Card -->
-            <div class="card">
-                <h3>Antevisão desta semana</h3>
-                <div class="calendar-preview" id="weeklyPreview">
-                    <div style="text-align: center; color: #666; padding: 2rem;">
-                        A carregar a programação semanal...
+                <!-- Attendance Progress -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="target" class="h-5 w-5 mr-2 text-purple-500"></i>
+                            Objetivos de Presença
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-medium">Meta Mensal (85%)</span>
+                                    <span class="text-purple-600" id="monthlyProgress">--% completo</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-purple-500 h-2 rounded-full transition-all duration-300" id="monthlyProgressBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-medium">Semana Atual</span>
+                                    <span class="text-success" id="weeklyProgress">--/-- dias</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-success h-2 rounded-full transition-all duration-300" id="weeklyProgressBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Attendance History Card -->
-            <div class="card">
-                <h3>Presença recente</h3>
-                <div class="history-list" id="attendanceHistory">
-                    <div style="text-align: center; color: #666; padding: 2rem;">
-                        Carregando histórico de presença...
+                <!-- Attendance History -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i data-lucide="clock" class="h-5 w-5 mr-2 text-gray-500"></i>
+                            Presença Recente
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3 max-h-64 overflow-y-auto" id="attendanceHistory">
+                            <div class="text-center text-gray-500 py-4">
+                                Carregando histórico de presença...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Estatísticas</h3>
+                    </div>
+                    <div class="p-6 space-y-4" id="statisticsSection">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Esta Semana</span>
+                            <span class="font-semibold text-success">--/-- aulas</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Este Mês</span>
+                            <span class="font-semibold text-success">--/-- aulas</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Taxa Global</span>
+                            <span class="font-semibold text-purple-500">--%</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -458,6 +312,9 @@
     </script>
 
     <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
         // Parse Django data safely
         let djangoData;
         try {
@@ -488,7 +345,7 @@
         const attendanceHistory = djangoData.attendanceHistory || [];
         const currentClasses = djangoData.currentClasses || [];
 
-        // ===== GLOBAL FUNCTIONS =====
+        // ===== MAIN FUNCTIONS =====
         
         function submitQuickAttendance() {
             const codeInput = document.getElementById('quickAttendanceCode');
@@ -543,7 +400,7 @@
             .finally(() => {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Enviar presença';
+                    submitBtn.textContent = 'Enviar';
                 }
             });
         }
@@ -553,15 +410,35 @@
         function updateConnectionStatus(connected) {
             const statusEl = document.getElementById('connectionStatus');
             if (statusEl) {
-                statusEl.textContent = connected ? 'Conectado' : 'Disconectado';
-                statusEl.className = 'connection-status ' + (connected ? 'conectado' : 'disconectado');
+                statusEl.className = connected ? 'w-3 h-3 bg-success rounded-full' : 'w-3 h-3 bg-danger rounded-full';
             }
         }
 
         function showStudentStatus(type, message) {
             const statusDiv = document.getElementById('quickCodeStatus');
             if (statusDiv) {
-                statusDiv.innerHTML = '<div class="status ' + type + '">' + message + '</div>';
+                let bgColor, textColor, borderColor;
+                
+                switch(type) {
+                    case 'success':
+                        bgColor = 'bg-green-50';
+                        textColor = 'text-green-700';
+                        borderColor = 'border-green-200';
+                        break;
+                    case 'error':
+                        bgColor = 'bg-red-50';
+                        textColor = 'text-red-700';
+                        borderColor = 'border-red-200';
+                        break;
+                    default:
+                        bgColor = 'bg-blue-50';
+                        textColor = 'text-blue-700';
+                        borderColor = 'border-blue-200';
+                }
+                
+                statusDiv.innerHTML = `<div class="p-3 ${bgColor} border ${borderColor} rounded-lg ${textColor} flex items-center"><i data-lucide="info" class="h-4 w-4 mr-2"></i>${message}</div>`;
+                lucide.createIcons();
+                
                 setTimeout(() => {
                     statusDiv.innerHTML = '';
                 }, 5000);
@@ -582,42 +459,70 @@
 
         function loadTodaySchedule() {
             const scheduleContainer = document.getElementById('todaySchedule');
+            const todayCountEl = document.getElementById('todayClassCount');
             if (!scheduleContainer) return;
 
             if (todayClasses && todayClasses.length > 0) {
                 scheduleContainer.innerHTML = '';
                 const now = new Date();
                 
+                // Update today's class count
+                if (todayCountEl) todayCountEl.textContent = todayClasses.length;
+                
                 todayClasses.forEach(classItem => {
                     const startTime = new Date(classItem.start_datetime);
                     const endTime = new Date(classItem.end_datetime);
                     
                     let status = 'upcoming';
-                    let statusText = 'Upcoming';
+                    let statusText = 'Próxima';
+                    let bgColor = 'bg-yellow-50';
+                    let borderColor = 'border-yellow-200';
+                    let textColor = 'text-yellow-800';
+                    let dotColor = 'bg-yellow-500';
                     
                     if (now >= startTime && now <= endTime) {
                         status = 'current';
-                        statusText = 'Now';
+                        statusText = 'Agora';
+                        bgColor = 'bg-green-50';
+                        borderColor = 'border-green-200';
+                        textColor = 'text-green-800';
+                        dotColor = 'bg-green-500';
                     } else if (now > endTime) {
                         status = 'past';
-                        statusText = 'Ended';
+                        statusText = 'Terminada';
+                        bgColor = 'bg-gray-50';
+                        borderColor = 'border-gray-200';
+                        textColor = 'text-gray-700';
+                        dotColor = 'bg-gray-400';
                     }
                     
                     const classElement = document.createElement('div');
-                    classElement.className = 'class-item ' + status;
+                    classElement.className = `flex items-center p-4 ${bgColor} border ${borderColor} rounded-lg`;
                     classElement.innerHTML = 
-                        '<div class="class-info">' +
-                            '<div class="class-name">' + (classItem.course_name || 'Unknown Course') + '</div>' +
-                            '<div class="class-time">' + 
-                                formatTime(startTime) + ' - ' + formatTime(endTime) +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="class-status ' + status + '">' + statusText + '</div>';
+                        `<div class="flex-1">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 ${dotColor} rounded-full mr-3"></div>
+                                <h4 class="font-semibold ${textColor}">${classItem.course_name || 'Curso Desconhecido'}</h4>
+                                <span class="ml-2 px-2 py-1 bg-white bg-opacity-50 ${textColor} text-xs rounded-full">${statusText}</span>
+                            </div>
+                            <p class="text-sm ${textColor.replace('800', '600')} mt-1">${formatTime(startTime)} - ${formatTime(endTime)}</p>
+                        </div>`;
                     
                     scheduleContainer.appendChild(classElement);
                 });
+                
+                // Update next class time
+                const upcomingClass = todayClasses.find(c => new Date(c.start_datetime) > now);
+                const nextTimeEl = document.getElementById('nextClassTime');
+                if (nextTimeEl && upcomingClass) {
+                    nextTimeEl.textContent = formatTime(new Date(upcomingClass.start_datetime));
+                } else if (nextTimeEl) {
+                    nextTimeEl.textContent = '--';
+                }
+                
             } else {
-                scheduleContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Não há aulas marcadas para hoje.</div>';
+                scheduleContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Não há aulas marcadas para hoje.</div>';
+                if (todayCountEl) todayCountEl.textContent = '0';
             }
         }
 
@@ -636,25 +541,32 @@
                 currentContainer.innerHTML = '';
                 currentClassesFiltered.forEach(classItem => {
                     const classElement = document.createElement('div');
-                    classElement.className = 'class-item current';
+                    classElement.className = 'flex items-center p-3 bg-green-50 border border-green-200 rounded-lg mb-2';
                     classElement.innerHTML = 
-                        '<div class="class-info">' +
-                            '<div class="class-name">🔴 ' + (classItem.course_name || 'Curso Desconhecido') + '</div>' +
-                            '<div class="class-time">Active until ' + formatTime(new Date(classItem.end_datetime)) + '</div>' +
-                        '</div>';
+                        `<div class="flex-1">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                                <h4 class="font-medium text-green-800">${classItem.course_name || 'Curso Desconhecido'}</h4>
+                            </div>
+                            <p class="text-sm text-green-600">Termina às ${formatTime(new Date(classItem.end_datetime))}</p>
+                        </div>`;
                     currentContainer.appendChild(classElement);
                 });
             } else {
-                currentContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">Não há aulas a decorrer no momento.</div>';
+                currentContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-sm">Não há aulas a decorrer no momento.</div>';
             }
         }
 
         function loadWeeklyPreview() {
             const weeklyContainer = document.getElementById('weeklyPreview');
+            const weeklyCountEl = document.getElementById('weeklyClassCount');
             if (!weeklyContainer) return;
 
             if (weeklyClasses && weeklyClasses.length > 0) {
                 weeklyContainer.innerHTML = '';
+                
+                // Update weekly class count
+                if (weeklyCountEl) weeklyCountEl.textContent = weeklyClasses.length;
                 
                 // Group classes by day
                 const classByDay = {};
@@ -668,19 +580,20 @@
 
                 Object.keys(classByDay).forEach(date => {
                     const dayElement = document.createElement('div');
-                    dayElement.className = 'calendar-day';
+                    dayElement.className = 'flex justify-between items-center p-3 border-b border-gray-200 last:border-b-0';
                     
-                    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                    const dayName = new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', month: 'short', day: 'numeric' });
                     const classCount = classByDay[date].length;
                     
                     dayElement.innerHTML = 
-                        '<div><strong>' + dayName + '</strong></div>' +
-                        '<div class="day-classes">' + classCount + ' class' + (classCount !== 1 ? 'es' : '') + '</div>';
+                        `<div class="font-medium text-gray-900">${dayName}</div>
+                         <div class="text-sm text-gray-500">${classCount} aula${classCount !== 1 ? 's' : ''}</div>`;
                     
                     weeklyContainer.appendChild(dayElement);
                 });
             } else {
-                weeklyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Não há aulas esta semana.</div>';
+                weeklyContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Não há aulas esta semana.</div>';
+                if (weeklyCountEl) weeklyCountEl.textContent = '0';
             }
         }
 
@@ -690,39 +603,115 @@
 
             if (attendanceHistory && attendanceHistory.length > 0) {
                 historyContainer.innerHTML = '';
-                attendanceHistory.forEach(record => {
+                
+                // Calculate attendance statistics
+                const totalRecords = attendanceHistory.length;
+                const presentRecords = attendanceHistory.filter(r => r.is_present).length;
+                const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
+                
+                // Update attendance rate display
+                const rateEl = document.getElementById('attendanceRate');
+                if (rateEl) rateEl.textContent = attendanceRate + '%';
+                
+                // Update statistics section
+                updateStatistics(attendanceHistory);
+                
+                // Display recent history
+                attendanceHistory.slice(0, 5).forEach(record => {
                     const historyElement = document.createElement('div');
-                    historyElement.className = 'history-item';
+                    historyElement.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg';
                     
-                    const status = record.is_present ? 'success' : 'warning';
+                    const statusColor = record.is_present ? 'text-green-600' : 'text-yellow-600';
                     const statusText = record.is_present ? 'Presente' : 'Pendente';
                     
                     historyElement.innerHTML = 
-                        '<div>' +
-                            '<div class="class-name">' + (record.course_name || 'Curso Desconhecido') + '</div>' +
-                            '<div class="class-time">' + formatDateTime(new Date(record.timestamp)) + '</div>' +
-                        '</div>' +
-                        '<div class="status ' + status + '">' + statusText + '</div>';
+                        `<div class="flex-1">
+                            <p class="font-medium text-gray-900">${record.course_name || 'Curso Desconhecido'}</p>
+                            <p class="text-sm text-gray-500">${formatDateTime(new Date(record.timestamp))}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${record.is_present ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${statusText}</span>`;
                     
                     historyContainer.appendChild(historyElement);
                 });
             } else {
-                historyContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhum registo de presença encontrado.</div>';
+                historyContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum registo de presença encontrado.</div>';
+            }
+        }
+
+        function updateStatistics(history) {
+            const statsSection = document.getElementById('statisticsSection');
+            if (!statsSection || !history.length) return;
+            
+            const now = new Date();
+            const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            
+            // Filter records for this week and month
+            const thisWeekRecords = history.filter(r => new Date(r.timestamp) >= thisWeekStart);
+            const thisMonthRecords = history.filter(r => new Date(r.timestamp) >= thisMonthStart);
+            
+            const weeklyPresent = thisWeekRecords.filter(r => r.is_present).length;
+            const monthlyPresent = thisMonthRecords.filter(r => r.is_present).length;
+            const totalPresent = history.filter(r => r.is_present).length;
+            const globalRate = Math.round((totalPresent / history.length) * 100);
+            
+            statsSection.innerHTML = `
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Esta Semana</span>
+                    <span class="font-semibold text-success">${weeklyPresent}/${thisWeekRecords.length} aulas</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Este Mês</span>
+                    <span class="font-semibold text-success">${monthlyPresent}/${thisMonthRecords.length} aulas</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Taxa Global</span>
+                    <span class="font-semibold text-purple-500">${globalRate}%</span>
+                </div>
+            `;
+            
+            // Update progress bars
+            updateProgressBars(weeklyPresent, thisWeekRecords.length, globalRate);
+        }
+
+        function updateProgressBars(weeklyPresent, weeklyTotal, globalRate) {
+            const monthlyProgressEl = document.getElementById('monthlyProgress');
+            const monthlyBarEl = document.getElementById('monthlyProgressBar');
+            const weeklyProgressEl = document.getElementById('weeklyProgress');
+            const weeklyBarEl = document.getElementById('weeklyProgressBar');
+            
+            if (monthlyProgressEl && monthlyBarEl) {
+                monthlyProgressEl.textContent = `${globalRate}% completo`;
+                monthlyBarEl.style.width = `${Math.min(globalRate, 100)}%`;
+            }
+            
+            if (weeklyProgressEl && weeklyBarEl && weeklyTotal > 0) {
+                const weeklyRate = Math.round((weeklyPresent / weeklyTotal) * 100);
+                weeklyProgressEl.textContent = `${weeklyPresent}/${weeklyTotal} dias`;
+                weeklyBarEl.style.width = `${weeklyRate}%`;
             }
         }
 
         function refreshAttendanceHistory() {
             // In a real application, you would fetch fresh data from the server
-            // For now, we'll just reload the existing data
             loadAttendanceHistory();
         }
 
         function formatTime(date) {
-            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            return date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
 
         function formatDateTime(date) {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + formatTime(date);
+            return date.toLocaleDateString('pt-PT', { month: 'short', day: 'numeric' }) + ' - ' + formatTime(date);
+        }
+
+        // Additional UI functions
+        function showAchievements() {
+            alert('Funcionalidade de conquistas em desenvolvimento!');
+        }
+
+        function exportReport() {
+            alert('Funcionalidade de exportação em desenvolvimento!');
         }
 
         function initWebSocket() {
@@ -740,7 +729,7 @@
                 console.log('Mensagem do aluno WebSocket:', data);
                 
                 if (data.context && data.context.type === 'attendance_validated') {
-                    showStudentStatus('success', 'YA sua presença para ' + data.context.class_name + ' foi validado!');
+                    showStudentStatus('success', 'A sua presença para ' + data.context.class_name + ' foi validada!');
                     refreshAttendanceHistory();
                 }
             };
@@ -758,7 +747,7 @@
 
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Painel do Aluno inicializado');
+            console.log('Dashboard do Aluno inicializado');
             console.log('Função do utilizador:', userRole);
 
             updateConnectionStatus(false);
@@ -777,11 +766,17 @@
                 });
             }
 
-            // Initialize WebSocket for real-time updates
-            // initWebSocket(); // Uncomment when you set up student WebSocket routing
+            // Initialize WebSocket for real-time updates (uncomment when ready)
+            // initWebSocket();
 
             // Refresh current classes every minute
             setInterval(loadCurrentClasses, 60000);
+            
+            // Refresh data every 5 minutes
+            setInterval(() => {
+                loadTodaySchedule();
+                loadWeeklyPreview();
+            }, 300000);
         });
     </script>
 </body>
