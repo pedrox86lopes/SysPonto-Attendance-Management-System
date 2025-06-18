@@ -37,9 +37,9 @@
                 <div class="flex items-center space-x-6">
                     <!-- Notifications -->
                     <div class="relative">
-                        <button class="text-white hover:text-gray-300 relative" id="notificationBtn">
+                        <button class="text-white hover:text-gray-300 relative" id="notificationBtn" onclick="scrollToSubmissions()" title="Ver submissões pendentes">
                             <i data-lucide="bell" class="h-6 w-6"></i>
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center" id="notificationCount">0</span>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center text-white" id="notificationCount" style="display: none;">0</span>
                         </button>
                     </div>
                     <!-- Connection Status -->
@@ -203,7 +203,7 @@
                 </div>
 
                 <!-- Real-time Submissions -->
-                <div class="bg-white rounded-lg shadow">
+                <div class="bg-white rounded-lg shadow" id="submissionsSection">
                     <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -366,6 +366,7 @@
         let codeExpiryTimestamp = null;
         let currentSubmissions = [];
         let currentFilter = 'all';
+        let activeCodeExists = false; // Track if there's an active code
 
         // Extract data from Django
         const initialCodeDetails = djangoData.initialCodeDetails || {};
@@ -373,6 +374,82 @@
         const activeClassSessionIdInitial = djangoData.activeClassSessionIdInitial || "";
         const CSRF_TOKEN = djangoData.csrfToken || "";
         const API_URLS = djangoData.apiUrls || {};
+
+        // ===== NOTIFICATION SYSTEM =====
+        
+        function updateNotificationCount(pendingCount) {
+            const notificationCountEl = document.getElementById('notificationCount');
+            const notificationBtn = document.getElementById('notificationBtn');
+            
+            if (notificationCountEl && notificationBtn) {
+                notificationCountEl.textContent = pendingCount;
+                
+                if (pendingCount > 0) {
+                    // Show notification badge and make it visible
+                    notificationCountEl.style.display = 'flex';
+                    notificationCountEl.className = 'absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center text-white animate-pulse';
+                    
+                    // Add visual indication to the bell icon
+                    notificationBtn.className = 'text-white hover:text-gray-300 relative animate-pulse';
+                } else {
+                    // Hide notification badge when no pending submissions
+                    notificationCountEl.style.display = 'none';
+                    notificationBtn.className = 'text-white hover:text-gray-300 relative';
+                }
+            }
+        }
+
+        function scrollToSubmissions() {
+            const submissionsSection = document.getElementById('submissionsSection');
+            if (submissionsSection) {
+                submissionsSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+                
+                // Add a brief highlight effect to draw attention
+                submissionsSection.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.3)';
+                setTimeout(() => {
+                    submissionsSection.style.boxShadow = '';
+                }, 2000);
+            }
+        }
+
+        // ===== STATUS MANAGEMENT =====
+        
+        function resetCodeStatus() {
+            const statusIndicator = document.getElementById('codeStatusIndicator');
+            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
+            const deactivateBtn = document.getElementById('deactivateBtn');
+            
+            if (statusIndicator) {
+                statusIndicator.innerHTML = `
+                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span class="text-sm text-gray-500">Sem código ativo</span>
+                `;
+            }
+            
+            if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
+            if (deactivateBtn) deactivateBtn.style.display = 'none';
+            
+            document.getElementById('activeCodesCount').textContent = '0';
+            activeCodeExists = false;
+            
+            // Reset notification count when resetting code status
+            updateNotificationCount(0);
+            
+            if (codeTimerInterval) {
+                clearInterval(codeTimerInterval);
+                codeTimerInterval = null;
+            }
+        }
+
+        function resetActiveSessionIndicator() {
+            const indicator = document.getElementById('activeSessionIndicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
 
         // ===== MAIN FUNCTIONS =====
 
@@ -406,6 +483,7 @@
                     if (data.status === 'success') {
                         updateCodeDisplay(data.code, data.expires_at);
                         updateActiveSessionIndicator(sessionSelect.options[sessionSelect.selectedIndex].dataset.courseName);
+                        activeCodeExists = true; // Mark that we have an active code
                         alert('Código gerado com sucesso!');
                         loadSubmissionsForSession(classSessionId);
                     } else {
@@ -447,6 +525,7 @@
                 startCodeTimer();
 
                 document.getElementById('activeCodesCount').textContent = '1';
+                activeCodeExists = true; // Mark that we have an active code
             }
         }
 
@@ -461,7 +540,19 @@
                 if (timeLeft <= 0) {
                     clearInterval(codeTimerInterval);
                     if (timerElement) timerElement.textContent = 'Código Expirado';
+                    
+                    // Reset status when code expires
+                    const statusIndicator = document.getElementById('codeStatusIndicator');
+                    if (statusIndicator) {
+                        statusIndicator.innerHTML = `
+                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span class="text-sm text-red-600">Código expirado</span>
+                        `;
+                    }
+                    
                     document.getElementById('activeCodesCount').textContent = '0';
+                    activeCodeExists = false;
+                    updateNotificationCount(0); // Reset notifications when code expires
                     return;
                 }
 
@@ -486,22 +577,8 @@
         }
 
         function deactivateCode() {
-            const activeCodeDisplay = document.getElementById('activeCodeDisplay');
-            const statusIndicator = document.getElementById('codeStatusIndicator');
-            const deactivateBtn = document.getElementById('deactivateBtn');
-
-            if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
-            if (deactivateBtn) deactivateBtn.style.display = 'none';
-
-            if (statusIndicator) {
-                statusIndicator.innerHTML = `
-                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <span class="text-sm text-gray-500">Sem código ativo</span>
-                `;
-            }
-
-            clearInterval(codeTimerInterval);
-            document.getElementById('activeCodesCount').textContent = '0';
+            resetCodeStatus();
+            resetActiveSessionIndicator();
         }
 
         function updateActiveSessionIndicator(courseName) {
@@ -627,6 +704,9 @@
             document.getElementById('pendingSubmissions').textContent = pending;
             document.getElementById('submissionCount').textContent = all + ' submissões';
 
+            // Update notification count with pending submissions
+            updateNotificationCount(pending);
+
             if (all > 0) {
                 const rate = Math.round((validated / all) * 100);
                 document.getElementById('todayAttendanceRate').textContent = rate + '%';
@@ -678,8 +758,45 @@
             }
 
             if (confirm(`Validar todas as ${pendingSubmissions.length} submissões pendentes?`)) {
-                pendingSubmissions.forEach(submission => {
-                    validateAttendance(submission.id);
+                // Validate each pending submission
+                let validatedCount = 0;
+                const totalPending = pendingSubmissions.length;
+
+                pendingSubmissions.forEach((submission, index) => {
+                    setTimeout(() => {
+                        fetch(API_URLS.validateAttendance, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': CSRF_TOKEN
+                            },
+                            body: new URLSearchParams({
+                                'attendance_record_id': submission.id
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const submissionIndex = currentSubmissions.findIndex(s => s.id === submission.id);
+                                if (submissionIndex !== -1) {
+                                    currentSubmissions[submissionIndex].is_present = true;
+                                }
+                                validatedCount++;
+                                
+                                // Update UI after each validation
+                                renderSubmissions();
+                                updateSubmissionCounts();
+                                
+                                // Show completion message after all validations
+                                if (validatedCount === totalPending) {
+                                    alert(`Todas as ${totalPending} submissões foram validadas com sucesso!`);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro na validação:', error);
+                        });
+                    }, index * 200); // Stagger requests to avoid overwhelming the server
                 });
             }
         }
@@ -709,11 +826,23 @@
             if (sessionSelect) {
                 sessionSelect.addEventListener('change', function (e) {
                     const selectedSessionId = e.target.value;
+                    
+                    // Reset code status when changing sessions (unless we have an active code for current session)
+                    if (!activeCodeExists) {
+                        resetCodeStatus();
+                        resetActiveSessionIndicator();
+                    }
+                    
                     if (selectedSessionId) {
                         loadSubmissionsForSession(selectedSessionId);
-                        const selectedOption = e.target.options[e.target.selectedIndex];
-                        const courseName = selectedOption.dataset.courseName;
-                        updateActiveSessionIndicator(courseName);
+                        
+                        // Only show active session if we don't have an active code
+                        if (!activeCodeExists) {
+                            const selectedOption = e.target.options[e.target.selectedIndex];
+                            const courseName = selectedOption.dataset.courseName;
+                            // Don't show as active unless there's actually an active code
+                            // updateActiveSessionIndicator(courseName);
+                        }
                     }
                 });
             }
@@ -743,10 +872,18 @@
             // Initialize UI components
             initializeFilters();
             setupSessionSelector();
+            
+            // Reset status on page load (ensure clean state)
+            resetCodeStatus();
+            resetActiveSessionIndicator();
+
+            // Initialize notification count
+            updateNotificationCount(0);
 
             // Load initial data if available
             if (initialCodeDetails && initialCodeDetails.code) {
                 updateCodeDisplay(initialCodeDetails.code, initialCodeDetails.expires_at);
+                activeCodeExists = true;
             }
 
             if (initialStudentSubmissions && initialStudentSubmissions.length > 0) {
