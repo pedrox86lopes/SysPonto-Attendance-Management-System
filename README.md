@@ -1,7 +1,25 @@
-[logo]: https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg "Logo Title Text 2"
-
 # SysPonto - Django Real-time Attendance System
 This project is a web-based attendance management system built with Django, featuring distinct dashboards for students, teachers, and administrators, along with real-time notifications powered by Django Channels.
+
+# Screenshots
+## Index Page
+![Image](https://github.com/user-attachments/assets/93ede926-3307-46b7-9563-69e8c9ad5cbd)
+
+## Login Page
+![Image](https://github.com/user-attachments/assets/2121bac1-5acd-4154-9075-ef49f2549370)
+
+## Teacher Dashboard
+![Image](https://github.com/user-attachments/assets/998d17aa-b7f0-4046-8750-81b4bb85bbb9)
+
+
+![Image](https://github.com/user-attachments/assets/4ce96d0b-f79c-4b32-a20c-7d0ac711e596)
+
+## Student Dashboard 
+![Image](https://github.com/user-attachments/assets/f7582b88-6900-405b-95ed-c6a99c230bb5)
+
+
+![Image](https://github.com/user-attachments/assets/cec7408b-950b-4f27-841a-bd6206a10746)
+
 
 # Features
 User Authentication & Authorization: Secure login and role-based access for students, teachers, and admins.
