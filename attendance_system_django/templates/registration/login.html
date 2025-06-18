@@ -1,38 +1,257 @@
 {% extends 'base.html' %}
 {% load static %}
 
-
 {% block header %}
     {% include 'includes/_main_header.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col items-center justify-center min-h-screen-minus-header">
-    <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-xl p-8">
-        <center> <img src="https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg" alt=""></center>
-
-        <h2 class="text-3xl font-headline font-bold text-center text-primary mb-6">Login</h2>
-        <form method="post">
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger" role="alert">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
+<div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 px-4 py-8">
+    <div class="w-full max-w-md">
+        <!-- Login Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-200/20 dark:shadow-slate-900/20 backdrop-blur-sm p-8 relative overflow-hidden">
+            <!-- Decorative gradient overlay -->
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none"></div>
+            
+            <div class="relative z-10">
+                <!-- Logo -->
+                <div class="flex justify-center mb-8">
+                    <div class="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                        <img src="https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg" 
+                             alt="CESAE Digital" 
+                             class="h-12 w-auto filter dark:brightness-0 dark:invert">
+                    </div>
                 </div>
-            {% endif %}
-            <div class="mb-4">
-                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-muted-foreground">{{ form.username.label }}</label>
-                <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}" class="mt-1 block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm" required>
+
+                <!-- Welcome Text -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                        SysPonto
+                    </h1>
+                    <p class="text-slate-600 dark:text-slate-400 mt-2">Por favor, inicie sessão na sua conta</p>
+                </div>
+
+                <!-- Form -->
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Error Messages -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div class="text-red-700 dark:text-red-300">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Username Field -->
+                    <div class="space-y-2">
+                        <label for="{{ form.username.id_for_label }}" 
+                               class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Nome de Utilizador
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <input type="text" 
+                                   name="{{ form.username.name }}" 
+                                   id="{{ form.username.id_for_label }}" 
+                                   class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-slate-400 dark:hover:border-slate-500" 
+                                   placeholder="Introduza o seu nome de utilizador"
+                                   required>
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="space-y-2">
+                        <label for="{{ form.password.id_for_label }}" 
+                               class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Palavra-passe
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <input type="password" 
+                                   name="{{ form.password.name }}" 
+                                   id="{{ form.password.id_for_label }}" 
+                                   class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-slate-400 dark:hover:border-slate-500" 
+                                   placeholder="Introduza a sua palavra-passe"
+                                   required>
+                        </div>
+                    </div>
+
+                    <!-- Remember Me & Forgot Password -->
+                    <div class="flex items-center justify-between text-sm">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
+                            <span class="ml-2 text-slate-600 dark:text-slate-400">Lembrar-me</span>
+                        </label>
+                        <a href="#" onclick="showForgotPasswordModal()" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">
+                            Esqueceu a palavra-passe?
+                        </a>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center group">
+                        <span>Iniciar Sessão</span>
+                        <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Additional Links -->
+                <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <p class="text-center text-sm text-slate-600 dark:text-slate-400">
+                        Não tem uma conta? 
+                        <a href="#" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">
+                            Registe-se aqui
+                        </a>
+                    </p>
+                </div>
             </div>
-            <div class="mb-6">
-                <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-muted-foreground">{{ form.password.label }}</label>
-                <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" class="mt-1 block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm" required>
-            </div>
-            <button type="submit" class="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-                Log In
-            </button>
-        </form>
+        </div>
+
+        <!-- Security Badge -->
+        <div class="mt-6 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
+            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+            </svg>
+            A sua informação está segura e encriptada
+        </div>
     </div>
 </div>
+
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-8 max-w-md mx-4 relative overflow-hidden transform transition-all duration-300">
+        <!-- Decorative gradient overlay -->
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none"></div>
+        
+        <div class="relative z-10">
+            <!-- Icon -->
+            <div class="flex justify-center mb-6">
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                    <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Title -->
+            <h3 class="text-xl font-bold text-center text-slate-900 dark:text-white mb-4">
+                Recuperação de Palavra-passe
+            </h3>
+            
+            <!-- Message -->
+            <p class="text-center text-slate-600 dark:text-slate-400 mb-8">
+                Contacte o Administrador do CESAE para alterações
+            </p>
+            
+            <!-- Close Button -->
+            <button onclick="hideForgotPasswordModal()" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:-translate-y-0.5 transition-all duration-200">
+                Compreendido
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Add some custom styles for enhanced animations -->
+<style>
+    .login-card-enter {
+        animation: slideInUp 0.6s ease-out;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Add subtle glow effect on focus */
+    input:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Smooth transitions for dark mode */
+    * {
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Modal animations */
+    #forgotPasswordModal .bg-white {
+        transform: scale(0.95);
+        opacity: 0;
+        transition: all 0.2s ease;
+    }
+</style>
+
+<script>
+    // Add the animation class when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginCard = document.querySelector('.bg-white');
+        if (loginCard) {
+            loginCard.classList.add('login-card-enter');
+        }
+    });
+
+    // Show forgot password modal
+    function showForgotPasswordModal() {
+        const modal = document.getElementById('forgotPasswordModal');
+        modal.classList.remove('hidden');
+        // Add animation
+        setTimeout(() => {
+            modal.querySelector('.bg-white').style.transform = 'scale(1)';
+            modal.querySelector('.bg-white').style.opacity = '1';
+        }, 10);
+    }
+
+    // Hide forgot password modal
+    function hideForgotPasswordModal() {
+        const modal = document.getElementById('forgotPasswordModal');
+        modal.querySelector('.bg-white').style.transform = 'scale(0.95)';
+        modal.querySelector('.bg-white').style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('forgotPasswordModal');
+        if (event.target === modal) {
+            hideForgotPasswordModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('forgotPasswordModal');
+            if (!modal.classList.contains('hidden')) {
+                hideForgotPasswordModal();
+            }
+        }
+    });
+</script>
 {% endblock %}

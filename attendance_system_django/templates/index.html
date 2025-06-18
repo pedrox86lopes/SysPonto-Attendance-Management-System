@@ -19,14 +19,17 @@
                         <a href="{% url 'dashboard' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                             Dashboard
                         </a>
-                        <a href="{% url 'logout' %}" class="text-gray-600 hover:text-gray-900">
-                            <i data-lucide="log-out" class="h-5 w-5"></i>
-                        </a>
+                        <!-- Fixed logout with POST form -->
+                        <form method="post" action="{% url 'logout' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-gray-600 hover:text-gray-900 p-1 rounded transition-colors" title="Logout">
+                                <i data-lucide="log-out" class="h-5 w-5"></i>
+                            </button>
+                        </form>
                     {% else %}
                         <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 font-medium">
                             Entrar
                         </a>
-
                     {% endif %}
                 </div>
             </div>
@@ -67,7 +70,6 @@
                     <a href="{% url 'login' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
                         Entrar na Plataforma
                     </a>
-
                 </div>
             {% endif %}
         </div>
