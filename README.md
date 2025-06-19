@@ -20,6 +20,8 @@ This project is a web-based attendance management system built with Django, feat
 
 ![Image](https://github.com/user-attachments/assets/cec7408b-950b-4f27-841a-bd6206a10746)
 
+## Calendar 
+![Image](https://github.com/user-attachments/assets/e786dc46-85d5-4609-92e2-55dd79d643cd)
 
 # Features
 User Authentication & Authorization: Secure login and role-based access for students, teachers, and admins.
