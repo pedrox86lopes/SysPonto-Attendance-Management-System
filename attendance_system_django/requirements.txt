@@ -1,0 +1,4 @@
+Django==5.2
+channels==4.0.0
+channels-redis==4.2.0
+asgiref==3.7.2
