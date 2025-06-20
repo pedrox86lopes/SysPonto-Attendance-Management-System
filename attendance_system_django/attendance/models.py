@@ -7,6 +7,7 @@ from django.utils import timezone
 import uuid
 from datetime import timedelta
 
+
 class AttendanceCode(models.Model):
     class_session = models.OneToOneField(ClassSession, on_delete=models.CASCADE, related_name='attendance_code')
     code = models.CharField(max_length=6, unique=True, blank=True) # Added blank=True if you set code in save()
@@ -62,4 +63,26 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.username} enrolled in {self.course.name}"
+    
+    # Justify Page
+class AbsenceJustification(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='justifications')
+    class_session = models.ForeignKey(ClassSession, on_delete=models.CASCADE, related_name='justifications')
+    description = models.TextField(max_length=500)
+    document = models.FileField(upload_to='justifications/%Y/%m/', null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pendente'),
+        ('approved', 'Aprovado'),
+        ('rejected', 'Rejeitado'),
+    ], default='pending')
+    teacher_comment = models.TextField(blank=True, null=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_justifications')
 
+    class Meta:
+        unique_together = ('student', 'class_session')
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.student.username} - {self.class_session.course.name} ({self.status})"

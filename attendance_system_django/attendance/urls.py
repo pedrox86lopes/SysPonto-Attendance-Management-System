@@ -17,6 +17,9 @@ urlpatterns = [
     path('student/portal/', views.student_portal, name='student_portal'),
     path('student/calendar/', views.student_calendar, name='student_calendar'),
     path('student/enter-code/', views.student_enter_code, name='student_enter_code'),
+    # Justify absence page
+    path('student/justify/', views.student_justify_absence, name='student_justify_absence'),
+
     
     # API Endpoints - Teacher
     path('api/generate-code/', views.generate_code_api_view, name='generate_code_api_view'),
@@ -30,6 +33,8 @@ urlpatterns = [
     path('api/student/today-classes/', views.api_student_today_classes, name='api_student_today_classes'),
     path('api/student/weekly-classes/', views.api_student_weekly_classes, name='api_student_weekly_classes'),
     path('api/student/attendance-history/', views.api_student_attendance_history, name='api_student_attendance_history'),
+    path('api/submit-justification/', views.submit_justification, name='submit_justification'),
+
     
     # Home page
     path('', views.home, name='home'),

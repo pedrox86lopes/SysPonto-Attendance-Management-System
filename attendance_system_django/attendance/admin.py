@@ -1,7 +1,7 @@
 # attendance/admin.py
 
 from django.contrib import admin
-from .models import AttendanceCode, AttendanceRecord, Enrollment
+from .models import AttendanceCode, AttendanceRecord, Enrollment, AbsenceJustification
 
 @admin.register(AttendanceCode)
 class AttendanceCodeAdmin(admin.ModelAdmin):
@@ -66,3 +66,10 @@ class EnrollmentAdmin(admin.ModelAdmin):
     list_filter = ('course', 'student')
     search_fields = ('student__username', 'course__name')
     readonly_fields = ('enrollment_date',)
+    
+@admin.register(AbsenceJustification)
+class AbsenceJustificationAdmin(admin.ModelAdmin):
+    list_display = ('student', 'class_session', 'status', 'submitted_at')
+    list_filter = ('status', 'submitted_at', 'class_session__course')
+    search_fields = ('student__username', 'class_session__course__name')
+    readonly_fields = ('submitted_at',)

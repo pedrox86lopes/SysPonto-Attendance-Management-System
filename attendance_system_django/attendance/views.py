@@ -1,4 +1,5 @@
 # attendance/views.py
+import os
 import json
 import random
 import math
@@ -15,7 +16,11 @@ from django.db.models import Q
 from django.utils.timezone import localdate
 import logging
 import string
-
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from core.models import User
+from courses.models import Course, ClassSession
+from attendance.models import AttendanceCode, AttendanceRecord, Enrollment, AbsenceJustification
 
 
 # Import your models
@@ -812,6 +817,131 @@ def get_session_submissions(request):
         })
 
     return JsonResponse({'status': 'success', 'submissions': student_submissions_data})
+
+# --- Student / Justify Absence ---
+@login_required(login_url='/login/')
+@user_passes_test(is_student, login_url='/login/')
+@require_POST
+def submit_justification(request):
+    """API endpoint for students to submit absence justification"""
+    try:
+        class_session_id = request.POST.get('class_session_id')
+        description = request.POST.get('description', '').strip()
+        uploaded_file = request.FILES.get('document')
+
+        if not class_session_id or not description:
+            return JsonResponse({'status': 'error', 'message': 'Todos os campos são obrigatórios.'}, status=400)
+
+        # Get and validate class session
+        try:
+            class_session = ClassSession.objects.get(id=class_session_id)
+        except ClassSession.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Sessão de aula não encontrada.'}, status=404)
+
+        # Check if student is enrolled in the course
+        if not class_session.course.course_enrollments.filter(student=request.user).exists():
+            return JsonResponse({'status': 'error', 'message': 'Não está inscrito neste curso.'}, status=403)
+
+        # Check if class is in the past and within 30 days
+        class_date = class_session.date
+        today = timezone.now().date()
+        days_since_class = (today - class_date).days
+
+        if days_since_class < 0:
+            return JsonResponse({'status': 'error', 'message': 'Não pode justificar aulas futuras.'}, status=400)
+        
+        if days_since_class > 30:
+            return JsonResponse({'status': 'error', 'message': 'Prazo de justificação expirado (máximo 30 dias).'}, status=400)
+
+        # Check for duplicate justification
+        if AbsenceJustification.objects.filter(student=request.user, class_session=class_session).exists():
+            return JsonResponse({'status': 'error', 'message': 'Já enviou uma justificação para esta aula.'}, status=400)
+
+        # Validate file if provided
+        if uploaded_file:
+            # Check file size (5MB max)
+            if uploaded_file.size > 5 * 1024 * 1024:
+                return JsonResponse({'status': 'error', 'message': 'Ficheiro muito grande. Máximo 5MB.'}, status=400)
+            
+            # Check file type
+            allowed_types = ['.pdf', '.png', '.jpg', '.jpeg', '.txt']
+            file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+            if file_extension not in allowed_types:
+                return JsonResponse({'status': 'error', 'message': 'Tipo de ficheiro não suportado.'}, status=400)
+
+        # Create the justification
+        justification = AbsenceJustification.objects.create(
+            student=request.user,
+            class_session=class_session,
+            description=description,
+            document=uploaded_file
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Justificação enviada com sucesso!',
+            'justification_id': str(justification.id)
+        })
+
+    except Exception as e:
+        logger.error(f"Error submitting justification: {e}")
+        return JsonResponse({'status': 'error', 'message': 'Erro interno do servidor.'}, status=500)
+
+# --- Student / Justify Absence ---
+@login_required(login_url='/login/')
+@user_passes_test(is_student, login_url='/login/')
+def student_justify_absence(request):
+    """Renders the student absence justification page."""
+    # Get past 60 days of sessions for justification
+    today = timezone.now().date()
+    past_60_days = today - timedelta(days=60)
+    
+    past_sessions = ClassSession.objects.filter(
+        course__course_enrollments__student=request.user,
+        date__range=[past_60_days, today],
+        date__lt=today  # Only past sessions
+    ).select_related('course').order_by('-date', '-start_time')
+    
+    # Format for calendar events JSON
+    calendar_events = []
+    for session in past_sessions:
+        start_datetime = timezone.make_aware(
+            datetime.combine(session.date, session.start_time)
+        )
+        end_datetime = timezone.make_aware(
+            datetime.combine(session.date, session.end_time)
+        )
+        
+        calendar_events.append({
+            'id': session.id,
+            'title': session.course.name,
+            'course_name': session.course.name,
+            'start': start_datetime.isoformat(),
+            'end': end_datetime.isoformat(),
+        })
+    
+    # Get recent justifications
+    recent_justifications = AbsenceJustification.objects.filter(
+        student=request.user
+    ).select_related('class_session__course').order_by('-submitted_at')[:5]
+    
+    justifications_data = []
+    for justification in recent_justifications:
+        justifications_data.append({
+            'id': str(justification.id),
+            'course_name': justification.class_session.course.name,
+            'class_date': justification.class_session.date.isoformat(),
+            'status': justification.status,
+            'submitted_at': justification.submitted_at.isoformat(),
+            'description': justification.description[:100] + '...' if len(justification.description) > 100 else justification.description,
+        })
+    
+    context = {
+        'calendar_events_json': json.dumps(calendar_events),
+        'recent_justifications_json': json.dumps(justifications_data),
+    }
+    
+    return render(request, 'student/justify.html', context)
 
 # --- Student Views ---
 
