@@ -827,6 +827,7 @@ def submit_justification(request):
     try:
         class_session_id = request.POST.get('class_session_id')
         description = request.POST.get('description', '').strip()
+        is_late_arrival = request.POST.get('is_late_arrival', 'false').lower() == 'true'
         uploaded_file = request.FILES.get('document')
 
         if not class_session_id or not description:
@@ -842,16 +843,26 @@ def submit_justification(request):
         if not class_session.course.course_enrollments.filter(student=request.user).exists():
             return JsonResponse({'status': 'error', 'message': 'Não está inscrito neste curso.'}, status=403)
 
-        # Check if class is in the past and within 30 days
-        class_date = class_session.date
-        today = timezone.now().date()
-        days_since_class = (today - class_date).days
-
-        if days_since_class < 0:
-            return JsonResponse({'status': 'error', 'message': 'Não pode justificar aulas futuras.'}, status=400)
+        # Validate timing based on justification type
+        now = timezone.now()
+        class_start = timezone.make_aware(datetime.combine(class_session.date, class_session.start_time))
+        class_end = timezone.make_aware(datetime.combine(class_session.date, class_session.end_time))
         
-        if days_since_class > 30:
-            return JsonResponse({'status': 'error', 'message': 'Prazo de justificação expirado (máximo 30 dias).'}, status=400)
+        if is_late_arrival:
+            # For late arrival: class must be currently running
+            if not (class_start <= now <= class_end):
+                return JsonResponse({'status': 'error', 'message': 'Esta aula não está a decorrer no momento.'}, status=400)
+        else:
+            # For absence: class must be in the past but within 30 days
+            days_since_class = (now.date() - class_session.date).days
+            if days_since_class < 0:
+                return JsonResponse({'status': 'error', 'message': 'Não pode justificar aulas futuras.'}, status=400)
+            if days_since_class > 30:
+                return JsonResponse({'status': 'error', 'message': 'Prazo de justificação expirado (máximo 30 dias).'}, status=400)
+
+        # For past classes (absence), file is required
+        if not is_late_arrival and not uploaded_file:
+            return JsonResponse({'status': 'error', 'message': 'Documento obrigatório para justificar ausências.'}, status=400)
 
         # Check for duplicate justification
         if AbsenceJustification.objects.filter(student=request.user, class_session=class_session).exists():
@@ -874,12 +885,15 @@ def submit_justification(request):
             student=request.user,
             class_session=class_session,
             description=description,
-            document=uploaded_file
+            document=uploaded_file,
+            justification_type='late_arrival' if is_late_arrival else 'absence'  # Add this field to model
         )
 
+        success_message = 'Justificação de chegada tardia enviada!' if is_late_arrival else 'Justificação de ausência enviada!'
+        
         return JsonResponse({
             'status': 'success',
-            'message': 'Justificação enviada com sucesso!',
+            'message': success_message,
             'justification_id': str(justification.id)
         })
 
@@ -892,19 +906,21 @@ def submit_justification(request):
 @user_passes_test(is_student, login_url='/login/')
 def student_justify_absence(request):
     """Renders the student absence justification page."""
-    # Get past 60 days of sessions for justification
     today = timezone.now().date()
-    past_60_days = today - timedelta(days=60)
     
-    past_sessions = ClassSession.objects.filter(
+    # Get classes from past 60 days AND today (including current/future classes today)
+    past_60_days = today - timedelta(days=60)
+    tomorrow = today + timedelta(days=1)
+    
+    # Include past classes AND all of today's classes (past, current, and future)
+    all_sessions = ClassSession.objects.filter(
         course__course_enrollments__student=request.user,
-        date__range=[past_60_days, today],
-        date__lt=today  # Only past sessions
+        date__range=[past_60_days, today]  # This includes today's classes
     ).select_related('course').order_by('-date', '-start_time')
     
     # Format for calendar events JSON
     calendar_events = []
-    for session in past_sessions:
+    for session in all_sessions:
         start_datetime = timezone.make_aware(
             datetime.combine(session.date, session.start_time)
         )
@@ -920,21 +936,25 @@ def student_justify_absence(request):
             'end': end_datetime.isoformat(),
         })
     
-    # Get recent justifications
-    recent_justifications = AbsenceJustification.objects.filter(
-        student=request.user
-    ).select_related('class_session__course').order_by('-submitted_at')[:5]
-    
-    justifications_data = []
-    for justification in recent_justifications:
-        justifications_data.append({
-            'id': str(justification.id),
-            'course_name': justification.class_session.course.name,
-            'class_date': justification.class_session.date.isoformat(),
-            'status': justification.status,
-            'submitted_at': justification.submitted_at.isoformat(),
-            'description': justification.description[:100] + '...' if len(justification.description) > 100 else justification.description,
-        })
+    # Get recent justifications (same as before)
+    try:
+        recent_justifications = AbsenceJustification.objects.filter(
+            student=request.user
+        ).select_related('class_session__course').order_by('-submitted_at')[:5]
+        
+        justifications_data = []
+        for justification in recent_justifications:
+            justifications_data.append({
+                'id': str(justification.id),
+                'course_name': justification.class_session.course.name,
+                'class_date': justification.class_session.date.isoformat(),
+                'status': justification.status,
+                'submitted_at': justification.submitted_at.isoformat(),
+                'description': justification.description[:100] + '...' if len(justification.description) > 100 else justification.description,
+            })
+    except:
+        # If AbsenceJustification model doesn't exist yet
+        justifications_data = []
     
     context = {
         'calendar_events_json': json.dumps(calendar_events),

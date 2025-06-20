@@ -25,21 +25,26 @@
         border: 2px dashed #d1d5db;
         transition: all 0.3s ease;
     }
+
     .file-drop-zone.dragover {
         border-color: #3b82f6;
         background-color: #eff6ff;
     }
+
     .file-preview {
         transition: all 0.3s ease;
     }
+
     .class-card {
         transition: all 0.2s ease;
         cursor: pointer;
     }
+
     .class-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
+
     .class-card.selected {
         border-color: #3b82f6;
         background-color: #eff6ff;
@@ -53,7 +58,8 @@
     <div class="bg-white rounded-lg shadow p-6">
         <!-- Back Button -->
         <div class="mb-4">
-            <a href="{% url 'student_dashboard' %}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+            <a href="{% url 'student_dashboard' %}"
+                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
                 <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i>
                 Voltar ao Dashboard
             </a>
@@ -87,29 +93,56 @@
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <span class="w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
+                        <span
+                            class="w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
                         Selecionar Aula
                     </h3>
                     <p class="text-gray-600 mt-1">Escolha a aula que pretende justificar</p>
                 </div>
                 <div class="p-6">
-                    <div id="classesList" class="space-y-3 max-h-96 overflow-y-auto">
-                        <div class="text-center text-gray-500 py-8">
-                            <i data-lucide="loader-2" class="h-8 w-8 mx-auto animate-spin mb-2"></i>
-                            A carregar aulas passadas...
+                    <!-- Current Running Classes -->
+                    <div id="currentClassesSection" style="display: none;">
+                        <div class="mb-4">
+                            <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+                                <i data-lucide="activity" class="h-4 w-4 mr-2 text-green-500"></i>
+                                Aulas a decorrer agora (chegada tardia)
+                            </h4>
+                            <div id="currentClassesList" class="space-y-2 mb-4">
+                                <!-- Current classes will be populated here -->
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                    </div>
+
+                    <!-- Past Classes -->
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+                            <i data-lucide="calendar-x" class="h-4 w-4 mr-2 text-red-500"></i>
+                            Aulas passadas (ausência total)
+                        </h4>
+                        <div id="classesList" class="space-y-3 max-h-96 overflow-y-auto">
+                            <div class="text-center text-gray-500 py-8">
+                                <i data-lucide="loader-2" class="h-8 w-8 mx-auto animate-spin mb-2"></i>
+                                A carregar aulas...
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Step 2: Upload File -->
-            <div class="bg-white rounded-lg shadow">
+            <div class="bg-white rounded-lg shadow" id="fileUploadSection">
                 <div class="p-6 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <span class="w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3" id="step2Number">2</span>
+                        <span
+                            class="w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3"
+                            id="step2Number">2</span>
                         Anexar Comprovativo
+                        <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                            id="fileOptionalBadge" style="display: none;">Opcional</span>
                     </h3>
-                    <p class="text-gray-600 mt-1">Faça upload do documento que comprova a sua justificação</p>
+                    <p class="text-gray-600 mt-1" id="fileUploadDescription">Faça upload do documento que comprova a sua
+                        justificação</p>
                 </div>
                 <div class="p-6">
                     <div class="file-drop-zone rounded-lg p-8 text-center" id="fileDropZone">
@@ -117,14 +150,24 @@
                             <i data-lucide="upload-cloud" class="h-12 w-12 mx-auto text-gray-400 mb-4"></i>
                             <p class="text-lg font-medium text-gray-900 mb-2">Arraste o ficheiro aqui</p>
                             <p class="text-gray-500 mb-4">ou clique para selecionar</p>
-                            <button type="button" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors" onclick="document.getElementById('fileInput').click()">
+                            <button type="button"
+                                class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                onclick="document.getElementById('fileInput').click()">
                                 Escolher Ficheiro
                             </button>
-                            <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt" onchange="handleFileSelect(event)">
+                            <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt"
+                                onchange="handleFileSelect(event)">
                         </div>
                         <div id="filePreview" class="hidden">
                             <!-- File preview will be shown here -->
                         </div>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <button type="button" id="skipFileBtn"
+                            class="text-accent hover:text-blue-600 text-sm font-medium" onclick="skipFileUpload()"
+                            style="display: none;">
+                            Pular anexo (só texto)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -133,19 +176,18 @@
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <span class="w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3" id="step3Number">3</span>
+                        <span
+                            class="w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3"
+                            id="step3Number">3</span>
                         Descrição da Justificação
                     </h3>
                     <p class="text-gray-600 mt-1">Explique brevemente o motivo da sua ausência</p>
                 </div>
                 <div class="p-6">
-                    <textarea 
-                        id="justificationText" 
-                        rows="4" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent resize-none" 
+                    <textarea id="justificationText" rows="4"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent resize-none"
                         placeholder="Descreva o motivo da sua falta (ex: consulta médica, assunto familiar urgente, etc.)"
-                        maxlength="500"
-                        disabled></textarea>
+                        maxlength="500" disabled></textarea>
                     <div class="flex justify-between items-center mt-2">
                         <p class="text-sm text-gray-500">Máximo 500 caracteres</p>
                         <p class="text-sm text-gray-500" id="charCount">0/500</p>
@@ -155,11 +197,9 @@
 
             <!-- Submit Button -->
             <div class="bg-white rounded-lg shadow p-6">
-                <button 
-                    id="submitBtn" 
-                    class="w-full bg-success text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed" 
-                    disabled
-                    onclick="submitJustification()">
+                <button id="submitBtn"
+                    class="w-full bg-success text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    disabled onclick="submitJustification()">
                     <i data-lucide="send" class="h-5 w-5 mr-2 inline"></i>
                     Enviar Justificação
                 </button>
@@ -250,7 +290,6 @@
     <!-- Status messages will appear here -->
 </div>
 
-
 <!-- Django data injection -->
 <script id="django-data" type="application/json">
 {
@@ -264,9 +303,10 @@
     }
 }
 </script>
+
 <script>
     // Initialize Lucide icons
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         lucide.createIcons();
     });
 
@@ -281,7 +321,7 @@
             csrfToken: "",
             isAuthenticated: false,
             calendarEvents: [],
-            recentJustifications: [], 
+            recentJustifications: [],
             apiUrls: {}
         };
     }
@@ -289,85 +329,94 @@
     // Global variables
     let selectedClass = null;
     let selectedFile = null;
+    let isCurrentClass = false; // Track if selected class is currently running
     let calendarEvents = djangoData.calendarEvents || [];
     const CSRF_TOKEN = djangoData.csrfToken || "";
 
-    // Process events to get past classes
-    const pastClasses = calendarEvents
-        .map(event => ({
-            ...event,
-            startDate: new Date(event.start),
-            endDate: new Date(event.end),
-            course_name: event.title || event.course_name || 'Curso Desconhecido'
-        }))
-        .filter(event => event.startDate < new Date()) // Only past classes
+    // Process events to get past and current classes
+    const currentTime = new Date();
+    const allClasses = calendarEvents.map(event => ({
+        ...event,
+        startDate: new Date(event.start),
+        endDate: new Date(event.end),
+        course_name: event.title || event.course_name || 'Curso Desconhecido'
+    }));
+
+    // Separate current and past classes
+    const currentClasses = allClasses.filter(event =>
+        currentTime >= event.startDate && currentTime <= event.endDate
+    );
+
+    const pastClasses = allClasses
+        .filter(event => event.startDate < currentTime && currentTime > event.endDate) // Past classes only
         .sort((a, b) => b.startDate - a.startDate); // Most recent first
 
-        // ===== LOAD RECENT JUSTIFICATIONS =====
-
-function loadRecentJustifications() {
-    const container = document.getElementById('recentJustifications');
-    const recentJustifications = djangoData.recentJustifications || [];
-    
-    if (recentJustifications.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-gray-500 py-4">
-                <i data-lucide="file-text" class="h-8 w-8 mx-auto text-gray-400 mb-2"></i>
-                <p class="text-sm">Nenhuma justificação enviada</p>
-            </div>
-        `;
-        lucide.createIcons();
-        return;
-    }
-    
-    container.innerHTML = '';
-    recentJustifications.forEach(justification => {
-        const item = document.createElement('div');
-        item.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg mb-2';
-        
-        let statusColor = 'bg-yellow-100 text-yellow-800';
-        let statusText = 'Pendente';
-        
-        if (justification.status === 'approved') {
-            statusColor = 'bg-green-100 text-green-800';
-            statusText = 'Aprovado';
-        } else if (justification.status === 'rejected') {
-            statusColor = 'bg-red-100 text-red-800';
-            statusText = 'Rejeitado';
-        }
-        
-        item.innerHTML = `
-            <div class="flex-1">
-                <p class="font-medium text-gray-900">${justification.course_name}</p>
-                <p class="text-sm text-gray-600">${formatDate(new Date(justification.class_date))}</p>
-                <p class="text-xs text-gray-500 mt-1">${justification.description}</p>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColor}">
-                ${statusText}
-            </span>
-        `;
-        container.appendChild(item);
-    });
-    
-    lucide.createIcons();
-}
-
     // ===== INITIALIZATION =====
-    
+
     function initializePage() {
+        loadCurrentClasses();
         loadPastClasses();
         setupFileHandlers();
         setupTextareaHandler();
         loadRecentJustifications();
-        
+
         lucide.createIcons();
     }
 
+    // ===== LOAD CURRENT CLASSES =====
+
+    function loadCurrentClasses() {
+        const currentSection = document.getElementById('currentClassesSection');
+        const currentContainer = document.getElementById('currentClassesList');
+
+        if (currentClasses.length === 0) {
+            currentSection.style.display = 'none';
+            return;
+        }
+
+        currentSection.style.display = 'block';
+        currentContainer.innerHTML = '';
+
+        currentClasses.forEach(classItem => {
+            const classCard = createCurrentClassCard(classItem);
+            currentContainer.appendChild(classCard);
+        });
+
+        lucide.createIcons();
+    }
+
+    function createCurrentClassCard(classItem) {
+        const card = document.createElement('div');
+        card.className = 'class-card border-2 border-green-300 bg-green-50 rounded-lg p-4 hover:border-green-400 transition-colors';
+        card.onclick = () => selectClass(classItem, card, true);
+
+        const minutesRunning = Math.floor((new Date() - classItem.startDate) / (1000 * 60));
+
+        card.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <div>
+                        <h4 class="font-semibold text-green-900">${classItem.course_name}</h4>
+                        <p class="text-sm text-green-700">${formatTime(classItem.startDate)} - ${formatTime(classItem.endDate)} (a decorrer)</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">
+                        ${minutesRunning} min em curso
+                    </span>
+                </div>
+            </div>
+        `;
+
+        return card;
+    }
+
     // ===== LOAD PAST CLASSES =====
-    
+
     function loadPastClasses() {
         const classesContainer = document.getElementById('classesList');
-        
+
         if (pastClasses.length === 0) {
             classesContainer.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
@@ -381,13 +430,13 @@ function loadRecentJustifications() {
         }
 
         classesContainer.innerHTML = '';
-        
+
         // Filter classes from last 30 days only (reasonable justification window)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+
         const recentPastClasses = pastClasses.filter(cls => cls.startDate >= thirtyDaysAgo);
-        
+
         if (recentPastClasses.length === 0) {
             classesContainer.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
@@ -404,7 +453,7 @@ function loadRecentJustifications() {
             const classCard = createClassCard(classItem);
             classesContainer.appendChild(classCard);
         });
-        
+
         lucide.createIcons();
     }
 
@@ -412,9 +461,9 @@ function loadRecentJustifications() {
         const card = document.createElement('div');
         card.className = 'class-card border border-gray-200 rounded-lg p-4 hover:border-accent transition-colors';
         card.onclick = () => selectClass(classItem, card);
-        
+
         const daysSince = Math.floor((new Date() - classItem.startDate) / (1000 * 60 * 60 * 24));
-        
+
         card.innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
@@ -431,37 +480,73 @@ function loadRecentJustifications() {
                 </div>
             </div>
         `;
-        
+
         return card;
     }
 
-    function selectClass(classItem, cardElement) {
-        // Remove previous selection
+    function selectClass(classItem, cardElement, isCurrent = false) {
+        // Remove previous selection from all cards
         document.querySelectorAll('.class-card').forEach(card => {
             card.classList.remove('selected');
         });
-        
+
         // Add selection to clicked card
         cardElement.classList.add('selected');
-        
+
         selectedClass = classItem;
-        
+        isCurrentClass = isCurrent;
+
         // Update progress
         updateProgress('step1', true);
-        
-        // Enable next step
+
+        // Enable next step and adjust requirements based on class type
+        if (isCurrent) {
+            // Current class - file upload is optional
+            makeFileUploadOptional();
+        } else {
+            // Past class - file upload is required
+            makeFileUploadRequired();
+        }
+
         enableStep2();
-        
-        // Show selected class info
-        showSelectedClassInfo(classItem);
-        
+        showSelectedClassInfo(classItem, isCurrent);
         checkFormCompletion();
     }
 
-    function showSelectedClassInfo(classItem) {
+    function makeFileUploadOptional() {
+        document.getElementById('fileOptionalBadge').style.display = 'inline-block';
+        document.getElementById('skipFileBtn').style.display = 'inline-block';
+        document.getElementById('fileUploadDescription').textContent = 'Anexe documento se necessário (opcional para chegada tardia)';
+
+        // Enable step 3 immediately
+        enableStep3();
+    }
+
+    function makeFileUploadRequired() {
+        document.getElementById('fileOptionalBadge').style.display = 'none';
+        document.getElementById('skipFileBtn').style.display = 'none';
+        document.getElementById('fileUploadDescription').textContent = 'Faça upload do documento que comprova a sua justificação';
+
+        // Disable step 3 until file is uploaded
+        if (!selectedFile) {
+            disableStep3();
+        }
+    }
+
+    function skipFileUpload() {
+        // Mark step 2 as completed without file
+        updateProgress('step2', true);
+        enableStep3();
+        checkFormCompletion();
+    }
+
+    function showSelectedClassInfo(classItem, isCurrent = false) {
         const infoContainer = document.getElementById('selectedClassInfo');
         const detailsContainer = document.getElementById('selectedClassDetails');
-        
+
+        const statusText = isCurrent ? 'A decorrer agora' : 'Aula passada';
+        const statusColor = isCurrent ? 'text-green-600' : 'text-red-600';
+
         detailsContainer.innerHTML = `
             <div class="space-y-3">
                 <div>
@@ -473,38 +558,43 @@ function loadRecentJustifications() {
                     <p class="text-gray-900">${formatDate(classItem.startDate)}</p>
                     <p class="text-gray-600 text-sm">${formatTime(classItem.startDate)} - ${formatTime(classItem.endDate)}</p>
                 </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Estado</p>
+                    <p class="${statusColor} font-medium">${statusText}</p>
+                </div>
+                ${isCurrent ? '<div class="bg-blue-50 border border-blue-200 rounded p-3"><p class="text-sm text-blue-800"><strong>Chegada tardia:</strong> Ficheiro opcional, apenas descreva o motivo do atraso.</p></div>' : ''}
             </div>
         `;
-        
+
         infoContainer.style.display = 'block';
     }
 
     // ===== FILE HANDLING =====
-    
+
     function setupFileHandlers() {
         const dropZone = document.getElementById('fileDropZone');
         const fileInput = document.getElementById('fileInput');
-        
+
         // Drag and drop handlers
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
-        
+
         dropZone.addEventListener('dragleave', () => {
             dropZone.classList.remove('dragover');
         });
-        
+
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            
+
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 handleFileSelect({ target: { files } });
             }
         });
-        
+
         // Click to upload
         dropZone.addEventListener('click', (e) => {
             if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
@@ -516,20 +606,20 @@ function loadRecentJustifications() {
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
+
         // Validate file type
         const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
         if (!allowedTypes.includes(file.type)) {
             showStatusMessage('Tipo de ficheiro não suportado. Use PDF, PNG, JPG ou TXT.', 'error');
             return;
         }
-        
+
         // Validate file size (5MB max)
         if (file.size > 5 * 1024 * 1024) {
             showStatusMessage('Ficheiro muito grande. Máximo 5MB.', 'error');
             return;
         }
-        
+
         selectedFile = file;
         showFilePreview(file);
         updateProgress('step2', true);
@@ -540,13 +630,13 @@ function loadRecentJustifications() {
     function showFilePreview(file) {
         const dropZoneContent = document.getElementById('dropZoneContent');
         const filePreview = document.getElementById('filePreview');
-        
+
         dropZoneContent.style.display = 'none';
         filePreview.style.display = 'block';
-        
+
         const fileSize = (file.size / 1024).toFixed(1);
         const fileType = file.type.split('/')[1].toUpperCase();
-        
+
         filePreview.innerHTML = `
             <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div class="flex items-center space-x-3">
@@ -563,7 +653,7 @@ function loadRecentJustifications() {
                 </button>
             </div>
         `;
-        
+
         lucide.createIcons();
     }
 
@@ -572,44 +662,44 @@ function loadRecentJustifications() {
         const dropZoneContent = document.getElementById('dropZoneContent');
         const filePreview = document.getElementById('filePreview');
         const fileInput = document.getElementById('fileInput');
-        
+
         dropZoneContent.style.display = 'block';
         filePreview.style.display = 'none';
         fileInput.value = '';
-        
+
         updateProgress('step2', false);
         disableStep3();
         checkFormCompletion();
     }
 
     // ===== TEXTAREA HANDLING =====
-    
+
     function setupTextareaHandler() {
         const textarea = document.getElementById('justificationText');
         const charCount = document.getElementById('charCount');
-        
+
         textarea.addEventListener('input', () => {
             const length = textarea.value.length;
             charCount.textContent = `${length}/500`;
-            
+
             if (length > 0) {
                 updateProgress('step3', true);
             } else {
                 updateProgress('step3', false);
             }
-            
+
             checkFormCompletion();
         });
     }
 
     // ===== PROGRESS MANAGEMENT =====
-    
+
     function updateProgress(step, completed) {
         const progressElement = document.getElementById(`progress${step.charAt(0).toUpperCase() + step.slice(1)}`);
         const stepNumber = document.getElementById(`${step}Number`);
         const dot = progressElement.querySelector('.w-3');
         const text = progressElement.querySelector('span');
-        
+
         if (completed) {
             dot.className = 'w-3 h-3 bg-success rounded-full mr-3';
             text.className = 'text-success font-medium';
@@ -648,9 +738,17 @@ function loadRecentJustifications() {
     function checkFormCompletion() {
         const submitBtn = document.getElementById('submitBtn');
         const textarea = document.getElementById('justificationText');
-        
-        const allCompleted = selectedClass && selectedFile && textarea.value.trim().length > 0;
-        
+
+        let allCompleted;
+
+        if (isCurrentClass) {
+            // For current classes, only text is required
+            allCompleted = selectedClass && textarea.value.trim().length > 0;
+        } else {
+            // For past classes, file is required
+            allCompleted = selectedClass && selectedFile && textarea.value.trim().length > 0;
+        }
+
         submitBtn.disabled = !allCompleted;
         if (allCompleted) {
             submitBtn.className = 'w-full bg-success text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium';
@@ -660,114 +758,183 @@ function loadRecentJustifications() {
     }
 
     // ===== SUBMISSION =====
-    
-function submitJustification() {
-    if (!selectedClass || !selectedFile) {
-        showStatusMessage('Por favor, complete todos os passos.', 'error');
-        return;
-    }
-    
-    const description = document.getElementById('justificationText').value.trim();
-    if (!description) {
-        showStatusMessage('Por favor, adicione uma descrição.', 'error');
-        return;
-    }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i data-lucide="loader-2" class="h-5 w-5 mr-2 inline animate-spin"></i>Enviando...';
-    
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('class_session_id', selectedClass.id);
-    formData.append('description', description);
-    formData.append('document', selectedFile);
-    formData.append('csrfmiddlewaretoken', CSRF_TOKEN);
-    
-    fetch(djangoData.apiUrls.submitJustification, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': CSRF_TOKEN
+
+    function submitJustification() {
+        const description = document.getElementById('justificationText').value.trim();
+
+        if (!selectedClass) {
+            showStatusMessage('Por favor, selecione uma aula.', 'error');
+            return;
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showStatusMessage(data.message, 'success');
-            resetForm();
-            loadRecentJustifications(); // Refresh the recent justifications
-        } else {
-            showStatusMessage(data.message, 'error');
+
+        if (!description) {
+            showStatusMessage('Por favor, adicione uma descrição.', 'error');
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showStatusMessage('Erro ao enviar justificação.', 'error');
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i data-lucide="send" class="h-5 w-5 mr-2 inline"></i>Enviar Justificação';
-        lucide.createIcons();
-    });
-}
+
+        // For past classes, file is required. For current classes, it's optional.
+        if (!isCurrentClass && !selectedFile) {
+            showStatusMessage('Por favor, anexe um comprovativo para aulas passadas.', 'error');
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="h-5 w-5 mr-2 inline animate-spin"></i>Enviando...';
+
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('class_session_id', selectedClass.id);
+        formData.append('description', description);
+        formData.append('is_late_arrival', isCurrentClass ? 'true' : 'false');
+
+        // Only append file if it exists
+        if (selectedFile) {
+            formData.append('document', selectedFile);
+        }
+
+        formData.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+        fetch(djangoData.apiUrls.submitJustification, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const successMessage = isCurrentClass ?
+                        'Justificação de chegada tardia enviada com sucesso!' :
+                        'Justificação de ausência enviada com sucesso!';
+                    showStatusMessage(successMessage, 'success');
+                    resetForm();
+                    loadRecentJustifications();
+                } else {
+                    showStatusMessage(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showStatusMessage('Erro ao enviar justificação.', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="send" class="h-5 w-5 mr-2 inline"></i>Enviar Justificação';
+                lucide.createIcons();
+            });
+    }
 
     function resetForm() {
         selectedClass = null;
         selectedFile = null;
-        
+        isCurrentClass = false;
+
         // Reset class selection
         document.querySelectorAll('.class-card').forEach(card => {
             card.classList.remove('selected');
         });
-        
+
         // Reset file upload
         removeFile();
-        
+
+        // Reset file upload requirements
+        makeFileUploadRequired();
+
         // Reset textarea
         const textarea = document.getElementById('justificationText');
         textarea.value = '';
         textarea.disabled = true;
         document.getElementById('charCount').textContent = '0/500';
-        
+
         // Reset progress
         updateProgress('step1', false);
         updateProgress('step2', false);
         updateProgress('step3', false);
-        
+
         // Reset step numbers
         document.getElementById('step2Number').className = 'w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3';
         document.getElementById('step3Number').className = 'w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3';
-        
+
         // Hide selected class info
         document.getElementById('selectedClassInfo').style.display = 'none';
-        
+
         checkFormCompletion();
     }
 
+    // ===== LOAD RECENT JUSTIFICATIONS =====
+
+    function loadRecentJustifications() {
+        const container = document.getElementById('recentJustifications');
+        const recentJustifications = djangoData.recentJustifications || [];
+
+        if (recentJustifications.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-4">
+                    <i data-lucide="file-text" class="h-8 w-8 mx-auto text-gray-400 mb-2"></i>
+                    <p class="text-sm">Nenhuma justificação enviada</p>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        container.innerHTML = '';
+        recentJustifications.forEach(justification => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg mb-2';
+
+            let statusColor = 'bg-yellow-100 text-yellow-800';
+            let statusText = 'Pendente';
+
+            if (justification.status === 'approved') {
+                statusColor = 'bg-green-100 text-green-800';
+                statusText = 'Aprovado';
+            } else if (justification.status === 'rejected') {
+                statusColor = 'bg-red-100 text-red-800';
+                statusText = 'Rejeitado';
+            }
+
+            item.innerHTML = `
+                <div class="flex-1">
+                    <p class="font-medium text-gray-900">${justification.course_name}</p>
+                    <p class="text-sm text-gray-600">${formatDate(new Date(justification.class_date))}</p>
+                    <p class="text-xs text-gray-500 mt-1">${justification.description}</p>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColor}">
+                    ${statusText}
+                </span>
+            `;
+            container.appendChild(item);
+        });
+
+        lucide.createIcons();
+    }
+
     // ===== UTILITIES =====
-    
+
     function formatDate(date) {
-        return date.toLocaleDateString('pt-PT', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        return date.toLocaleDateString('pt-PT', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
     }
 
     function formatTime(date) {
-        return date.toLocaleTimeString('pt-PT', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: false 
+        return date.toLocaleTimeString('pt-PT', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
         });
     }
 
     function showStatusMessage(message, type) {
         const container = document.getElementById('statusMessages');
         const messageId = 'msg_' + Date.now();
-        
+
         let bgColor, textColor, borderColor, icon;
         switch (type) {
             case 'success':
@@ -788,7 +955,7 @@ function submitJustification() {
                 borderColor = 'border-blue-200';
                 icon = 'info';
         }
-        
+
         const messageDiv = document.createElement('div');
         messageDiv.id = messageId;
         messageDiv.className = `${bgColor} border ${borderColor} rounded-lg p-4 ${textColor} shadow-lg transform translate-x-full transition-transform duration-300`;
@@ -803,15 +970,15 @@ function submitJustification() {
                 </button>
             </div>
         `;
-        
+
         container.appendChild(messageDiv);
         lucide.createIcons();
-        
+
         // Trigger animation
         setTimeout(() => {
             messageDiv.classList.remove('translate-x-full');
         }, 100);
-        
+
         // Auto-remove after 5 seconds
         setTimeout(() => {
             removeStatusMessage(messageId);
@@ -829,8 +996,8 @@ function submitJustification() {
     }
 
     // ===== INITIALIZATION =====
-    
-    document.addEventListener('DOMContentLoaded', function() {
+
+    document.addEventListener('DOMContentLoaded', function () {
         console.log('Absence Justification page initialized');
         initializePage();
     });

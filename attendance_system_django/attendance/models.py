@@ -71,6 +71,10 @@ class AbsenceJustification(models.Model):
     description = models.TextField(max_length=500)
     document = models.FileField(upload_to='justifications/%Y/%m/', null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
+    justification_type = models.CharField(max_length=20, choices=[
+        ('absence', 'Ausência Total'),
+        ('late_arrival', 'Chegada Tardia'),
+    ], default='absence')
     status = models.CharField(max_length=20, choices=[
         ('pending', 'Pendente'),
         ('approved', 'Aprovado'),
