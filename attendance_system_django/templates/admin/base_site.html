@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block branding %}
+<div style="display: flex; align-items: center; padding: 10px 20px;">
+    <img src="https://www.cesaedigital.pt/fldrSite/img/cesae-digital-logo.svg" 
+         alt="CESAE Digital" 
+         style="height: 40px; margin-right: 15px; filter: brightness(0) invert(1);">
+    <h1 style="margin: 0; color: white;">
+        <a href="{% url 'admin:index' %}" style="color: white; text-decoration: none;">
+            SysPonto | Administrador
+        </a>
+    </h1>
+</div>
+{% endblock %}
