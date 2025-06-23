@@ -20,7 +20,7 @@ jobs:
         python-version: 3.11
     
     - name: 📦 Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
@@ -178,7 +178,7 @@ jobs:
     
     # 📤 UPLOAD ALL REPORTS AS ARTIFACTS
     - name: 📤 Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
@@ -189,7 +189,7 @@ jobs:
         retention-days: 30
     
     - name: 📤 Upload code quality reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: code-quality-reports
@@ -198,7 +198,7 @@ jobs:
         retention-days: 30
     
     - name: 📤 Upload test coverage reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-reports
@@ -208,7 +208,7 @@ jobs:
         retention-days: 30
     
     - name: 📤 Upload CI summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ci-summary
