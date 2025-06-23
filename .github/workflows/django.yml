@@ -1,50 +1,314 @@
-name: Django CI
+name: Django CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master ]
+    types: [ opened, synchronize, reopened ]
+
+env:
+  DJANGO_SETTINGS_MODULE: attendance_system.settings
 
 jobs:
-  test:
+  # 🔍 Code Quality Checks
+  lint:
+    name: "🔍 Code Quality & Linting"
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
     
-    - name: Set up Python 3.11
+    - name: 🐍 Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: "3.11"
     
-    - name: Cache pip dependencies
+    - name: 📦 Cache pip dependencies
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/requirements*.txt') }}
         restore-keys: |
+          ${{ runner.os }}-pip-lint-
           ${{ runner.os }}-pip-
     
-    - name: Install dependencies
+    - name: 🔧 Install linting dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install Django
-        pip install channels
-        django-extensions
-        pyparsing
-        pydot
+        pip install flake8 black isort bandit safety
     
-    - name: Run Django check
+    - name: 🎨 Check code formatting (Black)
+      run: |
+        black --check --diff attendance_system_django/
+      continue-on-error: true
+    
+    - name: 📐 Check import sorting (isort)
+      run: |
+        isort --check-only --diff attendance_system_django/
+      continue-on-error: true
+    
+    - name: 🔍 Lint with flake8
+      run: |
+        flake8 attendance_system_django/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 attendance_system_django/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: 🛡️ Security check (Bandit)
+      run: |
+        bandit -r attendance_system_django/ -f json -o bandit-report.json || true
+        bandit -r attendance_system_django/ -ll
+      continue-on-error: true
+    
+    - name: 📊 Upload bandit report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+  # 🧪 Django Tests & Checks
+  test:
+    name: "🧪 Django Tests & Database Checks"
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+        django-version: ["5.1", "5.2"]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: 📦 Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+    
+    - name: 🔧 Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz graphviz-dev
+    
+    - name: 📦 Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        
+        # Install Django version from matrix
+        pip install "Django~=${{ matrix.django-version }}.0"
+        
+        # Install core dependencies
+        pip install channels asgiref
+        
+        # Install optional dependencies (with error handling)
+        pip install django-extensions pyparsing pydot || echo "Optional packages failed to install"
+        
+        # Install testing dependencies
+        pip install coverage pytest pytest-django pytest-cov
+        
+        # Install any other requirements if they exist
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+    
+    - name: 🔍 Django System Check
       run: |
         cd attendance_system_django
-        python manage.py check
+        python manage.py check --deploy
       env:
         DJANGO_SETTINGS_MODULE: attendance_system.settings
     
-    - name: Run Django migrations (dry-run)
+    - name: 🗄️ Check for model changes
       run: |
         cd attendance_system_django
-        python manage.py makemigrations --dry-run --check
+        python manage.py makemigrations --dry-run --check --verbosity=2
       env:
         DJANGO_SETTINGS_MODULE: attendance_system.settings
+    
+    - name: 🚀 Test migrations
+      run: |
+        cd attendance_system_django
+        python manage.py migrate --run-syncdb
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+    
+    - name: 🧪 Run Django tests
+      run: |
+        cd attendance_system_django
+        python manage.py test --verbosity=2 --keepdb
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+    
+    - name: 📊 Generate test coverage report
+      run: |
+        cd attendance_system_django
+        coverage run --source='.' manage.py test
+        coverage xml -o coverage.xml
+        coverage report --show-missing
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+      continue-on-error: true
+    
+    - name: 📤 Upload coverage to artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-report-${{ matrix.python-version }}-django${{ matrix.django-version }}
+        path: attendance_system_django/coverage.xml
+
+  # 🔒 Security & Dependency Checks
+  security:
+    name: "🔒 Security & Dependency Audit"
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: 🔧 Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety pip-audit
+    
+    - name: 🛡️ Check for known security vulnerabilities
+      run: |
+        # Create a temporary requirements file with current dependencies
+        pip freeze > temp-requirements.txt
+        
+        # Check with safety
+        safety check --file temp-requirements.txt --json --output safety-report.json || true
+        safety check --file temp-requirements.txt
+        
+        # Check with pip-audit
+        pip-audit --format=json --output=pip-audit-report.json || true
+        pip-audit
+      continue-on-error: true
+    
+    - name: 📤 Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          safety-report.json
+          pip-audit-report.json
+
+  # 🏗️ Build & Validate
+  build:
+    name: "🏗️ Build & Validate Django App"
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: 🔧 Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz
+    
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Django channels asgiref
+        pip install django-extensions pyparsing pydot || true
+    
+    - name: 🗄️ Collect static files
+      run: |
+        cd attendance_system_django
+        python manage.py collectstatic --noinput --verbosity=2
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+    
+    - name: 🔍 Validate Django configuration
+      run: |
+        cd attendance_system_django
+        python manage.py check --deploy --fail-level=WARNING
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+    
+    - name: 📊 Generate model diagram (if possible)
+      run: |
+        cd attendance_system_django
+        python manage.py graph_models -a -g -o database_schema.png || echo "Could not generate model diagram"
+      env:
+        DJANGO_SETTINGS_MODULE: attendance_system.settings
+      continue-on-error: true
+    
+    - name: 📤 Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: build-artifacts
+        path: |
+          attendance_system_django/staticfiles/
+          attendance_system_django/database_schema.png
+
+  # 📊 Final Report
+  report:
+    name: "📊 CI/CD Summary Report"
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build]
+    if: always()
+    
+    steps:
+    - name: 📥 Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: 📊 Generate summary report
+      run: |
+        echo "# 🎯 SysPonto CI/CD Pipeline Summary" > summary.md
+        echo "" >> summary.md
+        echo "## 📋 Pipeline Status" >> summary.md
+        echo "- **Lint Job**: ${{ needs.lint.result }}" >> summary.md
+        echo "- **Test Job**: ${{ needs.test.result }}" >> summary.md
+        echo "- **Security Job**: ${{ needs.security.result }}" >> summary.md
+        echo "- **Build Job**: ${{ needs.build.result }}" >> summary.md
+        echo "" >> summary.md
+        echo "## 🔗 Artifacts Generated" >> summary.md
+        echo "- Security reports" >> summary.md
+        echo "- Test coverage reports" >> summary.md
+        echo "- Build artifacts" >> summary.md
+        echo "" >> summary.md
+        echo "Generated on: $(date)" >> summary.md
+        
+        cat summary.md
+    
+    - name: 📤 Upload summary report
+      uses: actions/upload-artifact@v3
+      with:
+        name: pipeline-summary
+        path: summary.md
+    
+    - name: ✅ Mark as successful
+      if: needs.lint.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success'
+      run: echo "🎉 All critical checks passed! SysPonto is ready for deployment."
+    
+    - name: ❌ Mark as failed
+      if: needs.lint.result == 'failure' || needs.test.result == 'failure' || needs.build.result == 'failure'
+      run: |
+        echo "❌ Critical checks failed! Please review the errors before merging."
+        exit 1
