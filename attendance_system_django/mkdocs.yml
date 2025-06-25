@@ -1,0 +1,276 @@
+# mkdocs.yml - SysPonto Documentation Configuration
+
+# Site Information
+site_name: SysPonto Documentation
+site_description: Smart Attendance Management System for Educational Institutions
+site_author: Pedro Lopes
+site_url: https://sysponto.readthedocs.io
+
+# Repository Information
+repo_url: https://github.com/pedrox86lopes/sysponto
+repo_name: sysponto
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 CESAE Digital.
+
+# Theme Configuration
+theme:
+  name: material
+  custom_dir: docs/overrides
+  language: en
+  
+  # Color Palette
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Theme Features
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - content.code.annotate
+    - content.tooltips
+    - toc.follow
+    - toc.integrate
+
+  # Branding
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.ico
+  
+  # Icons
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# Navigation Structure
+nav:
+  - Home: 
+    - Overview: index.md
+    - Features: features.md
+    - Screenshots: screenshots.md
+  
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+    - Docker Setup: getting-started/docker.md
+  
+  - User Guide:
+    - Overview: user-guide/index.md
+    - Student Guide: user-guide/student-guide.md
+    - Teacher Guide: user-guide/teacher-guide.md
+    - Administrator Guide: user-guide/admin-guide.md
+    - Mobile Usage: user-guide/mobile.md
+  
+  - Features:
+    - Overview: features/index.md
+    - Attendance Codes: features/attendance-codes.md
+    - AI Validation: features/ai-validation.md
+    - Real-time Updates: features/real-time-updates.md
+    - Absence Justifications: features/justifications.md
+    - Analytics & Reports: features/analytics.md
+    - Security Features: features/security.md
+  
+  - API Reference:
+    - Overview: api/index.md
+    - Authentication: api/authentication.md
+    - Attendance API: api/attendance.md
+    - User Management: api/users.md
+    - Course Management: api/courses.md
+    - Analytics API: api/analytics.md
+    - WebSocket API: api/websockets.md
+  
+  - Technical:
+    - Architecture: technical/architecture.md
+    - Database Schema: technical/database.md
+    - Deployment: technical/deployment.md
+    - Performance: technical/performance.md
+    - Monitoring: technical/monitoring.md
+    - Backup & Recovery: technical/backup.md
+  
+  - Tutorials:
+    - First Class Setup: tutorials/first-class.md
+    - Bulk User Import: tutorials/bulk-import.md
+    - Custom Reports: tutorials/custom-reports.md
+    - LMS Integration: tutorials/lms-integration.md
+    - Mobile App Setup: tutorials/mobile-setup.md
+  
+  - Administration:
+    - System Setup: admin/system-setup.md
+    - User Management: admin/user-management.md
+    - Course Administration: admin/course-admin.md
+    - System Monitoring: admin/monitoring.md
+    - Maintenance: admin/maintenance.md
+  
+  - Troubleshooting:
+    - Common Issues: troubleshooting/common-issues.md
+    - FAQ: troubleshooting/faq.md
+    - Error Codes: troubleshooting/error-codes.md
+    - Performance Issues: troubleshooting/performance.md
+    - Getting Support: troubleshooting/support.md
+  
+  - About:
+    - Release Notes: about/changelog.md
+    - Contributing: about/contributing.md
+    - License: about/license.md
+    - Credits: about/credits.md
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+  
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: datetime
+  
+  - awesome-pages
+  
+  - redirects:
+      redirect_maps:
+        'old-page.md': 'new-page.md'
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      title: On this page
+  - tables
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: pedrox86lopes
+      repo: sysponto
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Extra Configuration
+extra:
+  # Analytics
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX  # Replace with your Google Analytics ID
+  
+  # Social Links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pedrox86lopes/sysponto
+      name: GitHub Repository
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/company/cesae-digital
+      name: CESAE Digital on LinkedIn
+    - icon: fontawesome/solid/envelope
+      link: mailto:support@cesaedigital.pt
+      name: Email Support
+  
+  # Version Management
+  version:
+    provider: mike
+    default: stable
+  
+  # Language Selection
+  alternate:
+    - name: English
+      link: /en/
+      lang: en
+    - name: Português
+      link: /pt/
+      lang: pt
+
+  # Generator Info
+  generator: false
+
+# Custom CSS and JavaScript
+extra_css:
+  - assets/stylesheets/custom.css
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/custom.js
+  - assets/javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
