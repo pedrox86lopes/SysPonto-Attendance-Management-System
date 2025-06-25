@@ -1,0 +1,117 @@
+# mkdocs.yml - SysPonto Documentation Configuration (Simplified)
+
+# Site Information
+site_name: SysPonto Documentation
+site_description: Smart Attendance Management System for Educational Institutions
+site_author: Pedro Lopes
+site_url: https://sysponto.readthedocs.io
+
+# Repository Information
+repo_url: https://github.com/pedrox86lopes/sysponto
+repo_name: sysponto
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Pedro Lopes
+
+# Theme Configuration
+theme:
+  name: material
+  language: en
+  
+  # Color Palette
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Theme Features
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+  # Icons
+  icon:
+    repo: fontawesome/brands/github
+
+# Navigation Structure
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - Overview: user-guide/index.md
+    - Student Guide: user-guide/student-guide.md
+    - Teacher Guide: user-guide/teacher-guide.md
+    - Admin Guide: user-guide/admin-guide.md
+  - Features:
+    - Overview: features/index.md
+    - Attendance Codes: features/attendance-codes.md
+    - AI Validation: features/ai-validation.md
+    - Real-time Updates: features/real-time-updates.md
+  - API Reference:
+    - Overview: api/index.md
+    - Authentication: api/authentication.md
+    - Endpoints: api/endpoints.md
+  - Technical:
+    - Architecture: technical/architecture.md
+    - Database: technical/database.md
+    - Deployment: technical/deployment.md
+  - Troubleshooting:
+    - FAQ: troubleshooting/faq.md
+    - Support: troubleshooting/support.md
+
+# Plugins (minimal for stability)
+plugins:
+  - search
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - tables
+
+  # Python Markdown Extensions
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+# Extra Configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pedrox86lopes/sysponto
+    - icon: fontawesome/solid/envelope
