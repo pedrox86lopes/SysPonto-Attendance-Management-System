@@ -58,8 +58,6 @@ nav:
   - Home: index.md
   - Getting Started:
     - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-    - Configuration: getting-started/configuration.md
   - User Guide:
     - Overview: user-guide/index.md
     - Student Guide: user-guide/student-guide.md
@@ -74,13 +72,6 @@ nav:
     - Overview: api/index.md
     - Authentication: api/authentication.md
     - Endpoints: api/endpoints.md
-  - Technical:
-    - Architecture: technical/architecture.md
-    - Database: technical/database.md
-    - Deployment: technical/deployment.md
-  - Troubleshooting:
-    - FAQ: troubleshooting/faq.md
-    - Support: troubleshooting/support.md
 
 # Plugins (minimal for stability)
 plugins:
