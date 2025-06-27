@@ -1,32 +1,32 @@
 Django
-channels==4.0.0
-channels-redis==4.2.0
-asgiref==3.7.2
+channels
+channels-redis=
+asgiref
 
 # Development and admin tools
-django-extensions==3.2.3
-pyparsing==3.1.1
-pydot==1.4.2
+django-extensions
+pyparsing
+pydot
 
 # Documentation dependencies for Read The Docs
 
 # Core MkDocs
-mkdocs>=1.5.0
-mkdocs-material>=9.4.0
+mkdocs
+mkdocs-material
 
 # Extensions
-pymdown-extensions>=10.0
-mkdocs-minify-plugin>=0.7.0
-mkdocs-redirects>=1.2.0
+pymdown-extensions
+mkdocs-minify-plugin
+mkdocs-redirects
 
 # Code documentation
-mkdocstrings>=0.24.0
-mkdocstrings-python>=1.7.0
+mkdocstrings
+mkdocstrings-python
 
 # Additional plugins
-mkdocs-git-revision-date-localized-plugin>=1.2.0
-mkdocs-git-committers-plugin-2>=2.2.0
-mkdocs-awesome-pages-plugin>=2.9.0
+mkdocs-git-revision-date-localized-plugin
+mkdocs-git-committers-plugin-2
+mkdocs-awesome-pages-plugin
 
 # PDF generation support
-mkdocs-pdf-export-plugin>=0.5.10
+mkdocs-pdf-export-plugin
