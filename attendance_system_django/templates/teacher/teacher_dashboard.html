@@ -65,7 +65,7 @@
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{ request.user.get_full_name|default:request.user.username }}! 👋</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{ request.user.get_full_name|default:request.user.username }}!</h2>
                     <p class="text-gray-600">Faça a gestão das suas turmas e monitoriza a presença em tempo real.</p>
                 </div>
                 <!-- Active Session Indicator -->
@@ -272,11 +272,7 @@
                         <h3 class="text-lg font-semibold text-gray-900">Ações Rápidas</h3>
                     </div>
                     <div class="p-6 space-y-3">
-                        <button class="w-full flex items-center justify-center px-4 py-3 bg-accent text-white rounded-lg hover:bg-blue-600 transition-colors" onclick="exportReport()">
-                            <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2"></i>
-                            Exportar Relatório
-                        </button>
-                        <a href="{% url 'teacher_dashboard' %}" class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+                        <a href="{% url 'teacher_analytics' %}" class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
                             <i data-lucide="bar-chart-3" class="h-4 w-4 mr-2"></i>
                             Análise Detalhada
                         </a>
@@ -837,10 +833,6 @@
             }
         }
         
-        function exportReport() {
-            alert('Funcionalidade de relatório em desenvolvimento!');
-        }
-
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard do Professor inicializado');

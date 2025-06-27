@@ -11,6 +11,7 @@ urlpatterns = [
     path('teacher/portal/', views.teacher_portal, name='teacher_portal'),
     path('teacher/generate-code/', views.teacher_generate_code, name='teacher_generate_code'),  # Legacy
     path('teacher/generate-code-page/', views.teacher_generate_code_page, name='teacher_generate_code_page'),  # Legacy
+    path('teacher/analytics/', views.teacher_analytics, name='teacher_analytics'),
     
     # Student URLs
     path('student/dashboard/', views.student_dashboard_unified, name='student_dashboard'),

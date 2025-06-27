@@ -12,7 +12,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from datetime import datetime, timedelta
 from django.urls import reverse
-from django.db.models import Q 
+from django.db.models import Count, Avg, Q, Case, When, IntegerField
 from django.utils.timezone import localdate
 import logging
 import string
@@ -55,7 +55,6 @@ def is_admin(user):
     return user.is_authenticated and user.role == 'admin'
 
 # --- Get Code for Session ---
-
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')
 @require_GET
@@ -266,8 +265,276 @@ def is_admin(user):
     """Checks if the logged-in user is an admin."""
     return user.is_authenticated and user.role == 'admin'
 
-# --- Teacher Views ---
+# --- Teacher Views / Analytics View ---
+@login_required(login_url='/login/')
+@user_passes_test(is_teacher, login_url='/login/')
+def teacher_analytics(request):
+    """
+    Renders the detailed analytics page for teachers with comprehensive statistics.
+    ALL DATA COMES FROM REAL DATABASE - NO SIMULATION
+    """
+    # Get time period from request (default to 30 days)
+    period_days = int(request.GET.get('period', 30))
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=period_days)
+    
+    # Get teacher's courses
+    teacher_courses = Course.objects.filter(teachers=request.user)
+    
+    # Get class sessions in the period
+    class_sessions = ClassSession.objects.filter(
+        course__in=teacher_courses,
+        date__range=[start_date, end_date]
+    ).select_related('course')
+    
+    # Get attendance records
+    attendance_records = AttendanceRecord.objects.filter(
+        class_session__in=class_sessions
+    ).select_related('student', 'class_session__course')
+    
+    # === DATABASE CALCULATIONS ===
+    
+    # Global statistics
+    total_students = User.objects.filter(
+        role='student',
+        student_enrollments__course__in=teacher_courses
+    ).distinct().count()
+    
+    total_classes = class_sessions.count()
+    total_codes = AttendanceCode.objects.filter(class_session__in=class_sessions).count()
+    
+    # Calculate attendance rate
+    total_submissions = attendance_records.count()
+    present_submissions = attendance_records.filter(is_present=True).count()
+    global_attendance_rate = round((present_submissions / total_submissions * 100), 1) if total_submissions > 0 else 0
+    
+    # === WEEKLY ATTENDANCE TREND ===
+    weekly_trend = []
+    weekly_labels = []
+    
+    for i in range(7, -1, -1):  # Last 8 weeks
+        week_start = end_date - timedelta(days=end_date.weekday() + 7*i)
+        week_end = week_start + timedelta(days=6)
+        
+        week_sessions = class_sessions.filter(date__range=[week_start, week_end])
+        week_records = attendance_records.filter(class_session__in=week_sessions)
+        week_present = week_records.filter(is_present=True).count()
+        week_total = week_records.count()
+        
+        week_rate = round((week_present / week_total * 100), 1) if week_total > 0 else 0
+        weekly_trend.append(week_rate)
+        weekly_labels.append(f'Sem {8-i}')
+    
+    # === COURSE PERFORMANCE  ===
+    course_performance = []
+    course_labels = []
+    
+    for course in teacher_courses:
+        course_sessions = class_sessions.filter(course=course)
+        course_records = attendance_records.filter(class_session__in=course_sessions)
+        course_present = course_records.filter(is_present=True).count()
+        course_total = course_records.count()
+        
+        course_rate = round((course_present / course_total * 100), 1) if course_total > 0 else 0
+        course_performance.append(course_rate)
+        course_labels.append(course.name[:25])  # Truncate for display
+    
+    # === WEEKLY DISTRIBUTION BY DAY ===
+    weekly_distribution = []
+    weekly_dist_labels = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
+    
+    # Django week_day: 1=Sunday, 2=Monday, ..., 6=Friday, 7=Saturday
+    for day_num in range(2, 7):  # Monday=2 to Friday=6
+        day_sessions = class_sessions.filter(date__week_day=day_num)
+        day_records = attendance_records.filter(class_session__in=day_sessions)
+        day_present = day_records.filter(is_present=True).count()
+        day_total = day_records.count()
+        
+        day_rate = round((day_present / day_total * 100), 1) if day_total > 0 else 0
+        weekly_distribution.append(day_rate)
+    
+    # === TIME DISTRIBUTION  ===
+    # Count actual sessions by time periods
+    morning_sessions = class_sessions.filter(start_time__lt='12:00').count()
+    afternoon_sessions = class_sessions.filter(
+        start_time__gte='12:00', 
+        start_time__lt='18:00'
+    ).count()
+    evening_sessions = class_sessions.filter(start_time__gte='18:00').count()
+    
+    time_distribution = [morning_sessions, afternoon_sessions, evening_sessions]
+    time_labels = ['Manhã (9h-12h)', 'Tarde (12h-18h)', 'Noite (18h+)']
+    
+    # === ATTENDANCE STATUS DISTRIBUTION ===
+    present_count = attendance_records.filter(is_present=True).count()
+    pending_count = attendance_records.filter(is_present=False).count()
+    
+    # Check if you have AbsenceJustification model for real justified absences
+    try:
+        from .models import AbsenceJustification
+        justified_count = AbsenceJustification.objects.filter(
+            class_session__in=class_sessions,
+            status='approved'
+        ).count()
+        
+        # Calculate late arrivals from justifications
+        late_count = AbsenceJustification.objects.filter(
+            class_session__in=class_sessions,
+            justification_type='late_arrival'
+        ).count()
+        
+        # Adjust pending count to exclude justified absences
+        unjustified_count = max(0, pending_count - justified_count - late_count)
+        
+        attendance_status = [present_count, justified_count, unjustified_count, late_count]
+        status_labels = ['Presente', 'Falta Justificada', 'Falta Injustificada', 'Chegada Tardia']
+    except (ImportError, AttributeError):
+        # Fallback if AbsenceJustification doesn't exist
+        attendance_status = [present_count, pending_count]
+        status_labels = ['Presente', 'Pendente/Ausente']
+    
+    # === TOP PERFORMING STUDENTS ===
+    top_students = []
+    
+    # Get all students enrolled in teacher's courses
+    enrolled_students = User.objects.filter(
+        role='student',
+        student_enrollments__course__in=teacher_courses
+    ).distinct()
+    
+    for student in enrolled_students:
+        student_records = attendance_records.filter(student=student)
+        student_present = student_records.filter(is_present=True).count()
+        student_total = student_records.count()
+        
+        if student_total > 0:  # Only include students with attendance records
+            student_rate = round((student_present / student_total * 100), 1)
+            top_students.append({
+                'name': student.get_full_name() or student.username,
+                'rate': student_rate,
+                'classes': student_total
+            })
+    
+    # Sort by rate and get top 10 (or all if less than 10)
+    top_students = sorted(top_students, key=lambda x: x['rate'], reverse=True)[:10]
+    
+    # === COURSE STATISTICS ===
+    course_stats = []
+    
+    for course in teacher_courses:
+        # Count students enrolled in this specific course
+        course_students = User.objects.filter(
+            role='student',
+            student_enrollments__course=course
+        ).distinct().count()
+        
+        # Count sessions for this course in the period
+        course_sessions_count = class_sessions.filter(course=course).count()
+        
+        # Get attendance records for this course
+        course_records = attendance_records.filter(class_session__course=course)
+        course_present = course_records.filter(is_present=True).count()
+        course_total = course_records.count()
+        
+        # Calculate average attendance rate
+        avg_rate = round((course_present / course_total * 100), 1) if course_total > 0 else 0
+        
+        course_stats.append({
+            'name': course.name,
+            'students': course_students,
+            'avg_rate': avg_rate,
+            'total_classes': course_sessions_count,
+            'total_submissions': course_total,
+            'present_submissions': course_present
+        })
+    
+    # === PREVIOUS PERIOD COMPARISON (REAL DATA) ===
+    prev_start_date = start_date - timedelta(days=period_days)
+    prev_end_date = start_date
+    
+    prev_sessions = ClassSession.objects.filter(
+        course__in=teacher_courses,
+        date__range=[prev_start_date, prev_end_date]
+    )
+    prev_records = AttendanceRecord.objects.filter(class_session__in=prev_sessions)
+    prev_present = prev_records.filter(is_present=True).count()
+    prev_total = prev_records.count()
+    prev_rate = round((prev_present / prev_total * 100), 1) if prev_total > 0 else 0
+    
+    rate_change = round(global_attendance_rate - prev_rate, 1)
+    
+    # === ADDITIONAL REAL METRICS ===
+    
+    # Code generation efficiency
+    codes_per_session = round((total_codes / total_classes), 2) if total_classes > 0 else 0
+    
+    # Average students per class
+    avg_students_per_class = round((total_submissions / total_classes), 1) if total_classes > 0 else 0
+    
+    # AI validation statistics (if ai_result field is used)
+    ai_validated_records = attendance_records.exclude(ai_result__isnull=True).count()
+    ai_flagged_records = attendance_records.filter(
+        ai_result__icontains='"isFraudulent": true'
+    ).count()
+    
+    # Calculate AI suspicion rate in the view instead of template
+    ai_suspicion_rate = round((ai_flagged_records / ai_validated_records * 100), 1) if ai_validated_records > 0 else 0
+    
+    # === CONTEXT FOR TEMPLATE ===
+    context = {
+        # Global stats
+        'global_attendance_rate': global_attendance_rate,
+        'rate_change': rate_change,
+        'total_students': total_students,
+        'total_classes': total_classes,
+        'total_codes': total_codes,
+        'total_submissions': total_submissions,
+        'present_submissions': present_submissions,
+        'period_days': period_days,
+        
+        # Chart data (JSON serialized for JavaScript)
+        'attendance_trend_data': json.dumps({
+            'labels': weekly_labels,
+            'data': weekly_trend
+        }),
+        'course_performance_data': json.dumps({
+            'labels': course_labels,
+            'data': course_performance
+        }),
+        'weekly_distribution_data': json.dumps({
+            'labels': weekly_dist_labels,
+            'data': weekly_distribution
+        }),
+        'time_distribution_data': json.dumps({
+            'labels': time_labels,
+            'data': time_distribution
+        }),
+        'attendance_status_data': json.dumps({
+            'labels': status_labels,
+            'data': attendance_status
+        }),
+        
+        # Table data 
+        'top_students': top_students,
+        'course_stats': course_stats,
+        
+        # Additional metrics 
+        'courses_count': teacher_courses.count(),
+        'codes_per_session': codes_per_session,
+        'avg_students_per_class': avg_students_per_class,
+        'ai_validated_records': ai_validated_records,
+        'ai_flagged_records': ai_flagged_records,
+        'ai_suspicion_rate': ai_suspicion_rate,
+        
+        # Period information
+        'start_date': start_date.strftime('%d/%m/%Y'),
+        'end_date': end_date.strftime('%d/%m/%Y'),
+        'prev_rate': prev_rate,
+    }
+    
+    return render(request, 'teacher/teacher_analytics.html', context)
 
+# --- Teacher Views ---
 @login_required(login_url='/login/')
 @user_passes_test(is_teacher, login_url='/login/')
 def teacher_portal(request):
