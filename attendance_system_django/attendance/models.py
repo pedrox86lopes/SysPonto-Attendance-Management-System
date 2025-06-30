@@ -13,7 +13,7 @@ class AttendanceCode(models.Model):
     code = models.CharField(max_length=6, unique=True, blank=True) # Added blank=True if you set code in save()
     expires_at = models.DateTimeField(default=None, null=True) # Set a default in save() if not provided during creation
     created_at = models.DateTimeField(auto_now_add=True)
-    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # <-- ADD THIS LINE
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
 
