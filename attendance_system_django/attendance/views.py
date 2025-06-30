@@ -26,7 +26,6 @@ from attendance.models import AttendanceCode, AttendanceRecord, Enrollment, Abse
 # Import your models
 from core.models import User
 from courses.models import Course, ClassSession
-from attendance.models import AttendanceCode, AttendanceRecord, Enrollment
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
