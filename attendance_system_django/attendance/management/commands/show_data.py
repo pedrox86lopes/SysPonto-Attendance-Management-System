@@ -25,7 +25,9 @@ class Command(BaseCommand):
             
             self.stdout.write(
                 f"{record.student.username:<15} | "
-                f"{record.timestamp.strftime('%d/%m %H:%M'):<12} | "
+                f"{record.timestamp.strftime('%d/%m/%Y, %H:%M:%S'):<12} | "
                 f"{ai_status:<10} | "
                 f"{approval}"
             )
+            
+            
