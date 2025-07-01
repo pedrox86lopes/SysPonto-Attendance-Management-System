@@ -1,5 +1,5 @@
-txtdjango>=4.2
-channels>=4.0
+txtdjango
+channels
 django-extensions
 gunicorn
 dj-database-url
