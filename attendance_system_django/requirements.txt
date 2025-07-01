@@ -1,4 +1,3 @@
-txtdjango
 channels
 django-extensions
 gunicorn
