@@ -2,14 +2,15 @@ Django
 channels
 channels-redis
 asgiref
-
+gunicorn
+dj-database-url
+whitenoise
+psycopg2-binary
 # Development and admin tools
 django-extensions
 pyparsing
 pydot
-
 # Documentation dependencies for Read The Docs
-
 # Core MkDocs
 mkdocs
 mkdocs-material
@@ -30,3 +31,5 @@ mkdocs-awesome-pages-plugin
 
 # PDF generation support
 mkdocs-pdf-export-plugin
+
+
