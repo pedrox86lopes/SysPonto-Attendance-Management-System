@@ -1,6 +1,6 @@
 Django
 channels
-channels-redis=
+channels-redis
 asgiref
 
 # Development and admin tools
