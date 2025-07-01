@@ -1,37 +1,36 @@
-# attendance_system/asgi.py
+"""
+ASGI config for attendance_system project.
+
+It exposes the ASGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
+"""
 
 import os
-
 from django.core.asgi import get_asgi_application
-import attendance.routing
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
 
-
-# IMPORTANT: This line MUST come BEFORE importing any Django models or other
-# code that relies on Django settings being configured.
+# Set Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_system.settings')
 
-# Initialize Django ASGI application early to ensure the AppRegistry
-# is populated before importing code that may import ORM models.
+# Initialize Django ASGI application
 django_asgi_app = get_asgi_application()
 
-# Now that Django settings and apps are ready, import Channels components
-# and your app's routing.
-from channels.auth import AuthMiddlewareStack
+# Import Channels and your routing
 from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
-# Import your routing configuration from your attendance app AFTER Django is set up
+# Import your routing AFTER Django is configured
 import attendance.routing
 
-
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(
-            attendance.routing.websocket_urlpatterns
+    "http": django_asgi_app,
+    "websocket": AllowedHostsOriginValidator(
+        AuthMiddlewareStack(
+            URLRouter(
+                attendance.routing.websocket_urlpatterns
+            )
         )
     ),
 })
-                                 
