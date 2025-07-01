@@ -1,0 +1,9 @@
+txtdjango>=4.2
+channels>=4.0
+django-extensions
+gunicorn
+dj-database-url
+whitenoise
+psycopg2-binary
+redis
+asgiref
