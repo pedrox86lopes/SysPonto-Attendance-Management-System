@@ -9,16 +9,16 @@ This project is a web-based attendance management system built with Django, feat
 ![Image](https://github.com/user-attachments/assets/2121bac1-5acd-4154-9075-ef49f2549370)
 
 ## Teacher Dashboard
-![Image](https://github.com/user-attachments/assets/998d17aa-b7f0-4046-8750-81b4bb85bbb9)
+![Image](https://github.com/user-attachments/assets/14b4a033-96aa-4772-8330-a28cbc90eff3)
 
 
-![Image](https://github.com/user-attachments/assets/4ce96d0b-f79c-4b32-a20c-7d0ac711e596)
+![Screenshot from 2025-07-01 10-00-16](https://github.com/user-attachments/assets/1e9bc292-f740-4460-9742-ae00aa7ad762)
 
 ## Student Dashboard 
-![Image](https://github.com/user-attachments/assets/f7582b88-6900-405b-95ed-c6a99c230bb5)
+![Screenshot from 2025-07-01 10-00-48](https://github.com/user-attachments/assets/8b59e965-4435-421b-ba4a-495b29f1e69b)
 
 
-![Image](https://github.com/user-attachments/assets/cec7408b-950b-4f27-841a-bd6206a10746)
+![Screenshot from 2025-07-01 10-01-14](https://github.com/user-attachments/assets/d2c4ae51-98da-4c95-9331-33bbb024bd71)
 
 ## Student Justify Absence or later view
 
