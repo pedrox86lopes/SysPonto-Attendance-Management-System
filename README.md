@@ -162,7 +162,9 @@ cd attendance_system_django
 <p> python manage.py create_test_data --clear
   
 ## Quick Reset for Fresh Testing:
-python manage.py create_test_data --clear
+python3 manage.py clean_database --confirm
+
+Run again: <p> python manage.py create_test_data --clear
 
 # Usage
 ## Access the Admin Panel: Log in as the superuser at http://127.0.0.1:8000/admin/ to:
