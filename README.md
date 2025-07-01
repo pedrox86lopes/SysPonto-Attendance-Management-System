@@ -4,7 +4,7 @@ This project is a web-based attendance management system built with Django, feat
 
 ![Deployed on Railway](https://railway.app/button.svg)
 
-# 🚀 [Live Demo](sysponto-attendance-management-system-production.up.railway.app)
+# 🚀 [Live Demo](https://sysponto-attendance-management-system-production.up.railway.app/)
 
 ## 🎮 Teachers and Students already created, just pick one:
 - **Teachers:** `prof.silva`, `prof.santos`, `prof.costa` 
