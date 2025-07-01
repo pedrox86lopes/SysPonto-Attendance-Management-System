@@ -4,6 +4,6 @@
     "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "cd attendance_system_django && python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_test_data && daphne -b 0.0.0.0 -p $PORT attendance_system.asgi:application"
+    "startCommand": "cd attendance_system_django && python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_test_data && uvicorn attendance_system.asgi:application --host 0.0.0.0 --port $PORT"
   }
 }
