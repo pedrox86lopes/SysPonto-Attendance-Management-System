@@ -2,6 +2,19 @@
 This project is a web-based attendance management system built with Django, featuring distinct dashboards for students, teachers, and administrators, along with real-time notifications powered by Django Channels.
 ## [Quick Install Guide](https://github.com/pedrox86lopes/SysPonto-Attendance-Management-System/blob/main/docs/getting-started/installation.md)
 
+![Deployed on Railway](https://railway.app/button.svg)
+
+# 🚀 [Live Demo](sysponto-attendance-management-system-production.up.railway.app)
+
+## 🎮 Teachers and Students already created, just pick one:
+- **Teachers:** `prof.silva`, `prof.santos`, `prof.costa` 
+- **Students:** `student1` to `student8`
+- **Password:** `password123` (for all accounts)
+
+### Test Flow:
+1. Login as teacher → Generate attendance code
+2. Login as student → Enter code → Submit
+3. See real-time updates in teacher dashboard
 
 # Screenshots
 ## Login Page
