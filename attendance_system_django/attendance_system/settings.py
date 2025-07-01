@@ -216,9 +216,18 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
     # Security settings
     ALLOWED_HOSTS = [
         '.railway.app',
+        '.up.railway.app',
+        'sysponto-attendance-management-system-production.up.railway.app',  # Your specific URL
         'localhost',
         '127.0.0.1',
-        '.up.railway.app',  # Railway's new domain
+        '*',  # Temporary wildcard for testing
+    ]
+    
+    # CSRF trusted origins (For railway)
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.railway.app',
+        'https://*.up.railway.app',
+        'https://sysponto-attendance-management-system-production.up.railway.app',
     ]
     
     # Use environment secret key or fallback
