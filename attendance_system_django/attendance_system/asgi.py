@@ -3,6 +3,10 @@
 import os
 
 from django.core.asgi import get_asgi_application
+import attendance.routing
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+
 
 # IMPORTANT: This line MUST come BEFORE importing any Django models or other
 # code that relies on Django settings being configured.
@@ -24,14 +28,10 @@ import attendance.routing
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    # Add WebSocket protocol routing
-    "websocket": AllowedHostsOriginValidator(
-        AuthMiddlewareStack(
-            URLRouter(
-                attendance.routing.websocket_urlpatterns # Include your app's WebSocket URLs
-                # You might include other app's WebSocket URLs here if you have them:
-                # + another_app_routing.websocket_urlpatterns
-            )
+    "websocket": AuthMiddlewareStack(
+        URLRouter(
+            attendance.routing.websocket_urlpatterns
         )
     ),
 })
+                                 

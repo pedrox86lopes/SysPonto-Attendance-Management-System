@@ -37,9 +37,12 @@
                 <div class="flex items-center space-x-6">
                     <!-- Notifications -->
                     <div class="relative">
-                        <button class="text-white hover:text-gray-300 relative" id="notificationBtn" onclick="scrollToSubmissions()" title="Ver submissões pendentes">
+                        <button class="text-white hover:text-gray-300 relative" id="notificationBtn"
+                            onclick="scrollToSubmissions()" title="Ver submissões pendentes">
                             <i data-lucide="bell" class="h-6 w-6"></i>
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center text-white" id="notificationCount" style="display: none;">0</span>
+                            <span
+                                class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center text-white"
+                                id="notificationCount" style="display: none;">0</span>
                         </button>
                     </div>
                     <!-- Connection Status -->
@@ -65,11 +68,13 @@
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{ request.user.get_full_name|default:request.user.username }}!</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{
+                        request.user.get_full_name|default:request.user.username }}!</h2>
                     <p class="text-gray-600">Faça a gestão das suas turmas e monitoriza a presença em tempo real.</p>
                 </div>
                 <!-- Active Session Indicator -->
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4" id="activeSessionIndicator" style="display: none;">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4" id="activeSessionIndicator"
+                    style="display: none;">
                     <div class="flex items-center">
                         <div class="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
                         <div>
@@ -109,8 +114,10 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Aulas Hoje</p>
-                        <p class="text-2xl font-bold text-warning" id="todaySessionCount">{{ teacher_class_sessions_today|length }}</p>
-                        <p class="text-sm text-gray-500">{{ teacher_class_sessions_today|length }} sessões programadas</p>
+                        <p class="text-2xl font-bold text-warning" id="todaySessionCount">{{
+                            teacher_class_sessions_today|length }}</p>
+                        <p class="text-sm text-gray-500">{{ teacher_class_sessions_today|length }} sessões programadas
+                        </p>
                     </div>
                     <i data-lucide="calendar" class="h-8 w-8 text-warning"></i>
                 </div>
@@ -149,14 +156,17 @@
                         <!-- Class Selection -->
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Selecionar Turma:</label>
-                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent" id="classSessionSelect">
+                            <select
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                                id="classSessionSelect">
                                 {% for session in teacher_class_sessions_today %}
-                                <option value="{{ session.id }}" 
-                                    data-course-name="{{ session.course.name }}"
+                                <option value="{{ session.id }}" data-course-name="{{ session.course.name }}"
                                     data-start-time="{{ session.start_time|time:'H:i' }}"
-                                    data-end-time="{{ session.end_time|time:'H:i' }}" 
-                                    {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
-                                    {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
+                                    data-end-time="{{ session.end_time|time:'H:i' }}" {% if
+                                    active_class_session_for_display and session.id==active_class_session_for_display.id
+                                    %}selected{% endif %}>
+                                    {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{
+                                    session.end_time|time:"H:i" }}
                                 </option>
                                 {% empty %}
                                 <option value="">Não há aulas hoje.</option>
@@ -165,12 +175,15 @@
                         </div>
 
                         <!-- Active Code Display -->
-                        <div class="bg-gradient-to-r from-accent to-blue-600 rounded-lg p-6 text-white mb-4" id="activeCodeDisplay" style="display: none;">
+                        <div class="bg-gradient-to-r from-accent to-blue-600 rounded-lg p-6 text-white mb-4"
+                            id="activeCodeDisplay" style="display: none;">
                             <div class="text-center">
                                 <p class="text-sm opacity-90 mb-2">Código Atual:</p>
                                 <div class="flex items-center justify-center space-x-4">
                                     <p class="text-4xl font-mono font-bold tracking-widest" id="currentCode">------</p>
-                                    <button class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-2 transition-colors" onclick="copyCodeToClipboard()">
+                                    <button
+                                        class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-2 transition-colors"
+                                        onclick="copyCodeToClipboard()">
                                         <i data-lucide="copy" class="h-5 w-5"></i>
                                     </button>
                                 </div>
@@ -189,13 +202,19 @@
 
                         <!-- Action Buttons -->
                         <div class="flex space-x-3">
-                            <button class="flex-1 bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors" onclick="generateNewCode()" id="generateCodeBtn">
+                            <button
+                                class="flex-1 bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                onclick="generateNewCode()" id="generateCodeBtn">
                                 Gerar Novo Código
                             </button>
-                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" onclick="deactivateCode()" id="deactivateBtn" style="display: none;">
+                            <button
+                                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                onclick="deactivateCode()" id="deactivateBtn" style="display: none;">
                                 Desactivar
                             </button>
-                            <button class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors" onclick="validateAllPending()" id="validateAllBtn">
+                            <button
+                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                onclick="validateAllPending()" id="validateAllBtn">
                                 Validar Todas
                             </button>
                         </div>
@@ -211,7 +230,7 @@
                                 Submissões em Tempo Real
                             </h3>
                             <div class="flex items-center space-x-3">
-                                
+
                                 <div class="text-sm text-gray-500" id="lastUpdated">Nunca atualizado</div>
                             </div>
                         </div>
@@ -219,10 +238,17 @@
                     <div class="p-6">
                         <!-- Filters -->
                         <div class="flex space-x-2 mb-4">
-                            <button class="px-3 py-1 bg-accent text-white rounded-full text-sm filter-btn active" data-filter="all">Todos (<span id="allCount">0</span>)</button>
-                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="pending">Pendentes (<span id="pendingCount">0</span>)</button>
-                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="validated">Validados (<span id="validatedCount">0</span>)</button>
-                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn" data-filter="suspicious">Suspeitos (<span id="suspiciousCount">0</span>)</button>
+                            <button class="px-3 py-1 bg-accent text-white rounded-full text-sm filter-btn active"
+                                data-filter="all">Todos (<span id="allCount">0</span>)</button>
+                            <button
+                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn"
+                                data-filter="pending">Pendentes (<span id="pendingCount">0</span>)</button>
+                            <button
+                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn"
+                                data-filter="validated">Validados (<span id="validatedCount">0</span>)</button>
+                            <button
+                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 filter-btn"
+                                data-filter="suspicious">Suspeitos (<span id="suspiciousCount">0</span>)</button>
                         </div>
 
                         <!-- Submissions List -->
@@ -251,10 +277,12 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-semibold text-blue-800">{{ session.course.name }}</p>
-                                    <p class="text-sm text-blue-600">{{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}</p>
+                                    <p class="text-sm text-blue-600">{{ session.start_time|time:"H:i" }} - {{
+                                        session.end_time|time:"H:i" }}</p>
                                 </div>
                                 <div class="text-right">
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Programada</span>
+                                    <span
+                                        class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Programada</span>
                                 </div>
                             </div>
                         </div>
@@ -272,7 +300,8 @@
                         <h3 class="text-lg font-semibold text-gray-900">Ações Rápidas</h3>
                     </div>
                     <div class="p-6 space-y-3">
-                        <a href="{% url 'teacher_analytics' %}" class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+                        <a href="{% url 'teacher_analytics' %}"
+                            class="w-full flex items-center justify-center px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
                             <i data-lucide="bar-chart-3" class="h-4 w-4 mr-2"></i>
                             Análise Detalhada
                         </a>
@@ -361,19 +390,19 @@
         const API_URLS = djangoData.apiUrls || {};
 
         // ===== NOTIFICATION SYSTEM =====
-        
+
         function updateNotificationCount(pendingCount) {
             const notificationCountEl = document.getElementById('notificationCount');
             const notificationBtn = document.getElementById('notificationBtn');
-            
+
             if (notificationCountEl && notificationBtn) {
                 notificationCountEl.textContent = pendingCount;
-                
+
                 if (pendingCount > 0) {
                     // Show notification badge and make it visible
                     notificationCountEl.style.display = 'flex';
                     notificationCountEl.className = 'absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-5 w-5 flex items-center justify-center text-white animate-pulse';
-                    
+
                     // Add visual indication to the bell icon
                     notificationBtn.className = 'text-white hover:text-gray-300 relative animate-pulse';
                 } else {
@@ -387,11 +416,11 @@
         function scrollToSubmissions() {
             const submissionsSection = document.getElementById('submissionsSection');
             if (submissionsSection) {
-                submissionsSection.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
+                submissionsSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
                 });
-                
+
                 // Add a brief highlight effect to draw attention
                 submissionsSection.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.3)';
                 setTimeout(() => {
@@ -401,28 +430,28 @@
         }
 
         // ===== STATUS MANAGEMENT =====
-        
+
         function resetCodeStatus() {
             const statusIndicator = document.getElementById('codeStatusIndicator');
             const activeCodeDisplay = document.getElementById('activeCodeDisplay');
             const deactivateBtn = document.getElementById('deactivateBtn');
-            
+
             if (statusIndicator) {
                 statusIndicator.innerHTML = `
                     <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
                     <span class="text-sm text-gray-500">Sem código ativo</span>
                 `;
             }
-            
+
             if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
             if (deactivateBtn) deactivateBtn.style.display = 'none';
-            
+
             document.getElementById('activeCodesCount').textContent = '0';
             activeCodeExists = false;
-            
+
             // Reset notification count when resetting code status
             updateNotificationCount(0);
-            
+
             if (codeTimerInterval) {
                 clearInterval(codeTimerInterval);
                 codeTimerInterval = null;
@@ -525,7 +554,7 @@
                 if (timeLeft <= 0) {
                     clearInterval(codeTimerInterval);
                     if (timerElement) timerElement.textContent = 'Código Expirado';
-                    
+
                     // Reset status when code expires
                     const statusIndicator = document.getElementById('codeStatusIndicator');
                     if (statusIndicator) {
@@ -534,7 +563,7 @@
                             <span class="text-sm text-red-600">Código expirado</span>
                         `;
                     }
-                    
+
                     document.getElementById('activeCodesCount').textContent = '0';
                     activeCodeExists = false;
                     updateNotificationCount(0); // Reset notifications when code expires
@@ -759,28 +788,28 @@
                                 'attendance_record_id': submission.id
                             })
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                const submissionIndex = currentSubmissions.findIndex(s => s.id === submission.id);
-                                if (submissionIndex !== -1) {
-                                    currentSubmissions[submissionIndex].is_present = true;
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    const submissionIndex = currentSubmissions.findIndex(s => s.id === submission.id);
+                                    if (submissionIndex !== -1) {
+                                        currentSubmissions[submissionIndex].is_present = true;
+                                    }
+                                    validatedCount++;
+
+                                    // Update UI after each validation
+                                    renderSubmissions();
+                                    updateSubmissionCounts();
+
+                                    // Show completion message after all validations
+                                    if (validatedCount === totalPending) {
+                                        alert(`Todas as ${totalPending} submissões foram validadas com sucesso!`);
+                                    }
                                 }
-                                validatedCount++;
-                                
-                                // Update UI after each validation
-                                renderSubmissions();
-                                updateSubmissionCounts();
-                                
-                                // Show completion message after all validations
-                                if (validatedCount === totalPending) {
-                                    alert(`Todas as ${totalPending} submissões foram validadas com sucesso!`);
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Erro na validação:', error);
-                        });
+                            })
+                            .catch(error => {
+                                console.error('Erro na validação:', error);
+                            });
                     }, index * 200); // Stagger requests to avoid overwhelming the server
                 });
             }
@@ -811,16 +840,16 @@
             if (sessionSelect) {
                 sessionSelect.addEventListener('change', function (e) {
                     const selectedSessionId = e.target.value;
-                    
+
                     // Reset code status when changing sessions (unless we have an active code for current session)
                     if (!activeCodeExists) {
                         resetCodeStatus();
                         resetActiveSessionIndicator();
                     }
-                    
+
                     if (selectedSessionId) {
                         loadSubmissionsForSession(selectedSessionId);
-                        
+
                         // Only show active session if we don't have an active code
                         if (!activeCodeExists) {
                             const selectedOption = e.target.options[e.target.selectedIndex];
@@ -832,7 +861,7 @@
                 });
             }
         }
-        
+
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard do Professor inicializado');
@@ -840,7 +869,7 @@
             // Initialize UI components
             initializeFilters();
             setupSessionSelector();
-            
+
             // Reset status on page load (ensure clean state)
             resetCodeStatus();
             resetActiveSessionIndicator();
@@ -861,11 +890,21 @@
             }
 
             if (activeClassSessionIdInitial && activeClassSessionIdInitial !== 'null') {
-                loadSubmissionsForSession(activeClassSessionIdInitial);
+                console.log('Auto-connecting WebSocket for session:', activeClassSessionIdInitial);
+                initWebSocket(activeClassSessionIdInitial);
+            }
+            const sessionSelect = document.getElementById('classSessionSelect');
+            if (sessionSelect) {
+                sessionSelect.addEventListener('change', function (e) {
+                    if (e.target.value) {
+                        console.log('Connecting WebSocket for new session:', e.target.value);
+                        initWebSocket(e.target.value);
+                    }
+                });
             }
 
-            // Initialize icons ONCE at the end
-            lucide.createIcons();
+        // Initialize icons ONCE at the end
+        lucide.createIcons();
         });
     </script>
 

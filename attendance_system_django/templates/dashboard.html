@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -125,8 +126,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .dashboard {
@@ -161,7 +169,8 @@
             font-weight: 500;
         }
 
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 0.8rem;
             border: 2px solid #e0e0e0;
@@ -170,7 +179,8 @@
             transition: border-color 0.3s ease;
         }
 
-        input:focus, select:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -369,22 +379,22 @@
             .dashboard-metrics {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
+
             .role-selector {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .generated-code-text {
                 font-size: 1.5rem;
                 letter-spacing: 4px;
             }
-            
+
             .submission-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .submission-details {
                 margin-right: 0;
                 margin-bottom: 0.5rem;
@@ -392,9 +402,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="connection-status" id="connectionStatus">Disconectado</div>
-    
+
     <div class="container">
         <div class="header">
             <h1>SysPonto | Gera códigos</h1>
@@ -438,21 +449,20 @@
                         <label for="sessionSelect">Selecione a sessão da aula:</label>
                         <select id="sessionSelect">
                             {% for session in teacher_class_sessions_today %}
-                                <option 
-                                    value="{{ session.id }}" 
-                                    data-course-name="{{ session.course.name }}"
-                                    {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}
-                                >
-                                    {{ session.course.name }} - {{ session.start_time|time:'H:i' }} to {{ session.end_time|time:'H:i' }}
-                                </option>
+                            <option value="{{ session.id }}" data-course-name="{{ session.course.name }}" {% if
+                                active_class_session_for_display and session.id==active_class_session_for_display.id
+                                %}selected{% endif %}>
+                                {{ session.course.name }} - {{ session.start_time|time:'H:i' }} to {{
+                                session.end_time|time:'H:i' }}
+                            </option>
                             {% empty %}
-                                <option value="">Não há aulas hoje.</option>
+                            <option value="">Não há aulas hoje.</option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <button class="btn" onclick="generateCode()" id="generateCodeBtn">Gerar código</button>
-                    
+
                     <div id="activeCodeDisplay" style="display: none;">
                         <h4>Último código gerado: <span id="currentCodeCourseName"></span>:</h4>
                         <div class="generated-code-text" id="codeDisplay"></div>
@@ -505,10 +515,11 @@
                     <h3>Introduza o código de presença</h3>
                     <div class="form-group">
                         <label for="attendanceCode">Código de Presença:</label>
-                        <input type="text" id="attendanceCode" placeholder="Enter 6-digit code" maxlength="6" style="text-transform: uppercase;">
+                        <input type="text" id="attendanceCode" placeholder="Enter 6-digit code" maxlength="6"
+                            style="text-transform: uppercase;">
                     </div>
                     <button class="btn" onclick="submitAttendance()" id="submitAttendanceBtn">Enviar presença</button>
-                    
+
                     <div id="studentStatus"></div>
                 </div>
 
@@ -530,7 +541,8 @@
                 <div class="submission-item">
                     <div class="submission-details">
                         <div class="student-name">{{ session.course.name }}</div>
-                        <div class="submission-time">{{ session.start_time|time:'H:i' }} - {{ session.end_time|time:'H:i' }}</div>
+                        <div class="submission-time">{{ session.start_time|time:'H:i' }} - {{
+                            session.end_time|time:'H:i' }}</div>
                     </div>
                 </div>
                 {% endfor %}
@@ -588,7 +600,7 @@
                 apiUrls: {}
             };
         }
-        
+
         // Global variables
         let attendanceSocket = null;
         let currentClassSessionId = null;
@@ -605,16 +617,16 @@
         const API_URLS = djangoData.apiUrls || {};
 
         // ===== GLOBAL FUNCTIONS FOR ONCLICK =====
-        
+
         function generateCode() {
             console.log('generateCode called');
             console.log('API_URLS:', API_URLS);
-            
+
             if (!API_URLS.generateCode) {
                 alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
-            
+
             const sessionSelect = document.getElementById('sessionSelect');
             const classSessionId = sessionSelect ? sessionSelect.value : '';
 
@@ -639,37 +651,37 @@
                     'class_session_id': classSessionId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    updateCodeDisplay(data.code, data.expires_at, 'Ativo');
-                    alert('Código gerado com sucesso!');
-                    initWebSocket(classSessionId);
-                    loadSubmissionsForSession(classSessionId);
-                } else {
-                    alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa', error);
-                alert('Ocorreu um erro ao gerar o código.');
-            })
-            .finally(() => {
-                if (generateBtn) {
-                    generateBtn.disabled = false;
-                    generateBtn.textContent = 'Gerar código';
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateCodeDisplay(data.code, data.expires_at, 'Ativo');
+                        alert('Código gerado com sucesso!');
+                        initWebSocket(classSessionId);
+                        loadSubmissionsForSession(classSessionId);
+                    } else {
+                        alert('Erro ao gerar código: ' + (data.message || 'Erro desconhecido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro de pesquisa', error);
+                    alert('Ocorreu um erro ao gerar o código.');
+                })
+                .finally(() => {
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Gerar código';
+                    }
+                });
         }
 
         function deactivateCode() {
             clearInterval(codeTimerInterval);
             const activeCodeDisplay = document.getElementById('activeCodeDisplay');
             if (activeCodeDisplay) activeCodeDisplay.style.display = 'none';
-            
+
             const submissionsList = document.getElementById('submissionsList');
             if (submissionsList) submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma sessão de presença ativa</div>';
-            
+
             updateConnectionStatus(false);
             if (attendanceSocket) attendanceSocket.close();
             currentClassSessionId = null;
@@ -677,12 +689,12 @@
 
         function submitAttendance() {
             console.log('submitAttendance called');
-            
+
             if (!API_URLS.submitAttendance) {
                 alert('URL do API não disponível. Por favor, atualize a página.');
                 return;
             }
-            
+
             const attendanceCodeInput = document.getElementById('attendanceCode');
             const code = attendanceCodeInput ? attendanceCodeInput.value.trim().toUpperCase() : '';
             const submitBtn = document.getElementById('submitAttendanceBtn');
@@ -691,7 +703,7 @@
                 showStudentStatus('error', 'Por favor, introduza o código de presença.');
                 return;
             }
-            
+
             if (code.length !== 6) {
                 showStudentStatus('error', 'O código de presença deve ter 6 caracteres.');
                 return;
@@ -712,25 +724,25 @@
                     'attendance_code': code
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
-                    if (attendanceCodeInput) attendanceCodeInput.value = '';
-                } else {
-                    showStudentStatus('error', data.message || 'Erro desconhecido.');
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
-            })
-            .finally(() => {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Enviar presença';
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showStudentStatus('success', data.message || 'Presença enviada com sucesso!');
+                        if (attendanceCodeInput) attendanceCodeInput.value = '';
+                    } else {
+                        showStudentStatus('error', data.message || 'Erro desconhecido.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    showStudentStatus('error', 'Ocorreu um erro ao enviar a presença.');
+                })
+                .finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Enviar presença';
+                    }
+                });
         }
 
         function runAiValidation(recordId, classSessionId) {
@@ -738,7 +750,7 @@
                 alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
-            
+
             fetch(API_URLS.runAiValidation, {
                 method: 'POST',
                 headers: {
@@ -750,18 +762,18 @@
                     'class_session_id': classSessionId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert('A validação da IA ​​começou!');
-                } else {
-                    alert('Erro ao executar o AI: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                alert('Ocorreu um erro ao executar a validação da IA.');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('A validação da IA ​​começou!');
+                    } else {
+                        alert('Erro ao executar o AI: ' + (data.message || 'Erro desconhecido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro de pesquisa:', error);
+                    alert('Ocorreu um erro ao executar a validação da IA.');
+                });
         }
 
         function validateAttendance(recordId, classSessionId) {
@@ -769,7 +781,7 @@
                 alert('URL da API não disponível. Por favor, atualize a página.');
                 return;
             }
-            
+
             fetch(API_URLS.validateAttendance, {
                 method: 'POST',
                 headers: {
@@ -781,35 +793,35 @@
                     'class_session_id': classSessionId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert('Presença marcada como Presente!');
-                    const submissionItem = document.getElementById('submission-' + recordId);
-                    if (submissionItem) {
-                        const validateBtn = submissionItem.querySelector('.btn-small.validate');
-                        if (validateBtn) {
-                            validateBtn.disabled = true;
-                            validateBtn.textContent = 'Presente';
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Presença marcada como Presente!');
+                        const submissionItem = document.getElementById('submission-' + recordId);
+                        if (submissionItem) {
+                            const validateBtn = submissionItem.querySelector('.btn-small.validate');
+                            if (validateBtn) {
+                                validateBtn.disabled = true;
+                                validateBtn.textContent = 'Presente';
+                            }
                         }
+                    } else {
+                        alert('Erro ao validar a presença: ' + (data.message || 'Erro desconhecido'));
                     }
-                } else {
-                    alert('Erro ao validar a presença: ' + (data.message || 'Erro desconhecido'));
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                alert('Ocorreu um erro ao validar a presença.');
-            });
+                })
+                .catch(error => {
+                    console.error('Erro de pesquisa:', error);
+                    alert('Ocorreu um erro ao validar a presença.');
+                });
         }
 
         function switchRole(role) {
             const roleButtons = document.querySelectorAll('.role-btn');
             const portals = document.querySelectorAll('.portal');
-            
+
             roleButtons.forEach(btn => btn.classList.remove('active'));
             portals.forEach(portal => portal.classList.remove('active'));
-            
+
             event.target.classList.add('active');
             document.getElementById(role + 'Portal').classList.add('active');
         }
@@ -847,7 +859,7 @@
         function startCodeTimer() {
             if (codeTimerInterval) clearInterval(codeTimerInterval);
 
-            codeTimerInterval = setInterval(function() {
+            codeTimerInterval = setInterval(function () {
                 const now = new Date().getTime();
                 const timeLeft = codeExpiryTimestamp - now;
                 const timerElement = document.getElementById('timer');
@@ -887,19 +899,19 @@
             const submissionItem = document.createElement('div');
             submissionItem.className = 'submission-item';
             submissionItem.id = 'submission-' + submissionData.id;
-            
-            submissionItem.innerHTML = 
+
+            submissionItem.innerHTML =
                 '<div class="submission-details">' +
-                    '<div class="student-name">' + (submissionData.name || 'Unknown') + '</div>' +
-                    '<div class="submission-time">Submitted at ' + new Date(submissionData.timestamp).toLocaleTimeString() + '</div>' +
+                '<div class="student-name">' + (submissionData.name || 'Unknown') + '</div>' +
+                '<div class="submission-time">Submitted at ' + new Date(submissionData.timestamp).toLocaleTimeString() + '</div>' +
                 '</div>' +
                 '<div class="submission-actions">' +
-                    '<button class="btn-small ai" onclick="runAiValidation(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">Run AI</button>' +
-                    '<button class="btn-small validate" onclick="validateAttendance(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">' + 
-                        (submissionData.is_present ? 'Present' : 'Mark Present') +
-                    '</button>' +
+                '<button class="btn-small ai" onclick="runAiValidation(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">Run AI</button>' +
+                '<button class="btn-small validate" onclick="validateAttendance(\'' + submissionData.id + '\', \'' + (submissionData.class_session_id || currentClassSessionId) + '\')">' +
+                (submissionData.is_present ? 'Present' : 'Mark Present') +
+                '</button>' +
                 '</div>';
-            
+
             submissionsList.insertBefore(submissionItem, submissionsList.firstChild);
         }
 
@@ -915,25 +927,25 @@
             currentClassSessionId = sessionId;
 
             fetch(API_URLS.getSessionSubmissions + '?class_session_id=' + sessionId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    submissionsList.innerHTML = '';
-                    if (data.submissions && data.submissions.length > 0) {
-                        data.submissions.forEach(function(submission) {
-                            addSubmission(submission);
-                        });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        submissionsList.innerHTML = '';
+                        if (data.submissions && data.submissions.length > 0) {
+                            data.submissions.forEach(function (submission) {
+                                addSubmission(submission);
+                            });
+                        } else {
+                            submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma submissão ainda para esta sessão.</div>';
+                        }
                     } else {
-                        submissionsList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma submissão ainda para esta sessão.</div>';
+                        submissionsList.innerHTML = '<div class="status error">Erro ao carregar envios: ' + (data.message || 'Erro desconhecido') + '</div>';
                     }
-                } else {
-                    submissionsList.innerHTML = '<div class="status error">Erro ao carregar envios: ' + (data.message || 'Erro desconhecido') + '</div>';
-                }
-            })
-            .catch(error => {
-                console.error('Erro de pesquisa:', error);
-                submissionsList.innerHTML = '<div class="status error">Falha ao pesquisar envios.</div>';
-            });
+                })
+                .catch(error => {
+                    console.error('Erro de pesquisa:', error);
+                    submissionsList.innerHTML = '<div class="status error">Falha ao pesquisar envios.</div>';
+                });
         }
 
         function initWebSocket(sessionId) {
@@ -944,38 +956,39 @@
                     return;
                 }
             }
-            
+
             currentClassSessionId = sessionId;
-            const wsPath = 'ws://' + window.location.host + '/ws/attendance/class_session_' + sessionId + '/';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsPath = `${protocol}//${window.location.host}/ws/attendance/class_session_${sessionId}/`;
             attendanceSocket = new WebSocket(wsPath);
 
-            attendanceSocket.onopen = function(e) {
+            attendanceSocket.onopen = function (e) {
                 console.log('WebSocket connected');
                 updateConnectionStatus(true);
             };
 
-            attendanceSocket.onmessage = function(e) {
+            attendanceSocket.onmessage = function (e) {
                 const data = JSON.parse(e.data);
                 console.log('WebSocket message:', data);
-                
+
                 if (data.context && data.context.type === 'student_submitted') {
                     addSubmission(data.context);
                 }
             };
 
-            attendanceSocket.onclose = function(e) {
+            attendanceSocket.onclose = function (e) {
                 console.log('WebSocket disconnected');
                 updateConnectionStatus(false);
             };
 
-            attendanceSocket.onerror = function(e) {
+            attendanceSocket.onerror = function (e) {
                 console.error('WebSocket error:', e);
                 updateConnectionStatus(false);
             };
         }
 
         // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard initialized');
             console.log('User role:', userRole);
             console.log('Initial code details:', initialCodeDetails);
@@ -996,7 +1009,7 @@
                         initialCodeDetails.expires_at,
                         initialCodeDetails.code_status
                     );
-                    
+
                     // Set the course name in the display
                     const sessionSelect = document.getElementById('sessionSelect');
                     if (sessionSelect && sessionSelect.selectedOptions.length > 0) {
@@ -1007,7 +1020,7 @@
                             courseNameDisplay.textContent = courseName;
                         }
                     }
-                    
+
                     if (initialCodeDetails.class_session_id) {
                         initWebSocket(initialCodeDetails.class_session_id);
                     }
@@ -1017,7 +1030,7 @@
                     const submissionsList = document.getElementById('submissionsList');
                     if (submissionsList) {
                         submissionsList.innerHTML = '';
-                        initialStudentSubmissions.forEach(function(submission) {
+                        initialStudentSubmissions.forEach(function (submission) {
                             addSubmission(submission);
                         });
                     }
@@ -1027,13 +1040,13 @@
                     const historyDiv = document.getElementById('studentHistory');
                     if (historyDiv) {
                         historyDiv.innerHTML = '';
-                        studentHistoryData.forEach(function(record) {
+                        studentHistoryData.forEach(function (record) {
                             const newEntry = document.createElement('div');
                             newEntry.className = 'submission-item';
-                            newEntry.innerHTML = 
+                            newEntry.innerHTML =
                                 '<div>' +
-                                    '<div class="student-name">' + record.course_name + '</div>' +
-                                    '<div class="submission-time">' + record.session_date + ' - ' + new Date(record.timestamp).toLocaleTimeString() + '</div>' +
+                                '<div class="student-name">' + record.course_name + '</div>' +
+                                '<div class="submission-time">' + record.session_date + ' - ' + new Date(record.timestamp).toLocaleTimeString() + '</div>' +
                                 '</div>' +
                                 '<div class="status ' + (record.status.toLowerCase().includes('present') ? 'success' : 'warning') + '">' + record.status + '</div>';
                             historyDiv.appendChild(newEntry);
@@ -1045,7 +1058,7 @@
             // Session selector change event
             const sessionSelect = document.getElementById('sessionSelect');
             if (sessionSelect) {
-                sessionSelect.addEventListener('change', function(event) {
+                sessionSelect.addEventListener('change', function (event) {
                     const selectedSessionId = event.target.value;
                     if (selectedSessionId) {
                         loadSubmissionsForSession(selectedSessionId);
@@ -1061,12 +1074,12 @@
             // Format attendance code input
             const attendanceCodeInput = document.getElementById('attendanceCode');
             if (attendanceCodeInput) {
-                attendanceCodeInput.addEventListener('input', function(e) {
+                attendanceCodeInput.addEventListener('input', function (e) {
                     e.target.value = e.target.value.toUpperCase();
                 });
             }
         });
     </script>
 </body>
+
 </html>
-            

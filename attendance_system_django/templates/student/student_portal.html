@@ -726,9 +726,39 @@
         }
 
         // ===== INITIALIZATION =====
+        function initStudentWebSocket() {
+            // Connect to a general student notification channel
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsPath = `${protocol}//${window.location.host}/ws/student/notifications/`;
+
+            const studentSocket = new WebSocket(wsPath);
+
+            studentSocket.onopen = function (e) {
+                console.log('Student WebSocket connected');
+                updateConnectionStatus(true);
+            };
+
+            studentSocket.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+                console.log('Student notification:', data);
+
+                if (data.context && data.context.type === 'attendance_validated') {
+                    showStudentStatus('success', `Your attendance for ${data.context.class_name} has been validated!`);
+                    refreshAttendanceHistory();
+                }
+            };
+
+            studentSocket.onclose = function (e) {
+                console.log('Student WebSocket disconnected');
+                updateConnectionStatus(false);
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Dashboard do Aluno inicializado');
             console.log('Função do utilizador:', userRole);
+            initStudentWebSocket();
+
 
             // Fix: Start with connected status as true instead of false
             updateConnectionStatus(true);
