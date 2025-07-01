@@ -1,10 +1,9 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "nixpacks",
-    "buildCommand": "cd attendance_system_django && pip install -r requirements.txt"
+    "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "cd attendance_system_django && python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_test_data && gunicorn attendance_system.asgi:application --bind 0.0.0.0:$PORT"
+    "startCommand": "cd attendance_system_django && python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_test_data && daphne -b 0.0.0.0 -p $PORT attendance_system.asgi:application"
   }
 }

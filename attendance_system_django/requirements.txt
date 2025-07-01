@@ -1,6 +1,9 @@
+django
 channels
 django-extensions
 gunicorn
+uvicorn
+daphne
 dj-database-url
 whitenoise
 psycopg2-binary
