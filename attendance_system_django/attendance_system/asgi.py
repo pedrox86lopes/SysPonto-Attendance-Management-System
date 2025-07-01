@@ -8,29 +8,32 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 
 import os
-from django.core.asgi import get_asgi_application
-
-# Set Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_system.settings')
 
-# Initialize Django ASGI application
-django_asgi_app = get_asgi_application()
+# Configure Django before importing anything else
+import django
+django.setup()
 
-# Import Channels and your routing
+from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
-# Import your routing AFTER Django is configured
-import attendance.routing
+# Get Django ASGI application first
+django_asgi_app = get_asgi_application()
+
+# Import routing after Django is configured
+try:
+    import attendance.routing
+    websocket_urlpatterns = attendance.routing.websocket_urlpatterns
+except ImportError:
+    websocket_urlpatterns = []
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
-            URLRouter(
-                attendance.routing.websocket_urlpatterns
-            )
+            URLRouter(websocket_urlpatterns)
         )
     ),
 })
