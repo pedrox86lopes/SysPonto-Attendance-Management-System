@@ -4,6 +4,7 @@ channels-redis
 asgiref
 gunicorn
 uvicorn
+websockets
 daphne
 dj-database-url
 whitenoise
