@@ -7,7 +7,7 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
     DEBUG = False
     
     # Security settings first
-    SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     
     # Safe database configuration
     if 'DATABASE_URL' in os.environ:
