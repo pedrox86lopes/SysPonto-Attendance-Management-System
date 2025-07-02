@@ -1,5 +1,9 @@
 import dj_database_url
 import os
+from pathlib import Path
+
+# Define BASE_DIR first (required for database path)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Detect Railway environment
 if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
@@ -8,6 +12,14 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
     # Security settings first
     SECRET_KEY = os.environ.get('SECRET_KEY')
     
+    # Define DATABASES first before trying to modify it
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    
     # Safe database configuration
     if 'DATABASE_URL' in os.environ:
         DATABASES['default'] = dj_database_url.parse(
@@ -15,14 +27,17 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
             conn_max_age=600,
             conn_health_checks=True,
         )
-    else:
-        # Fallback to SQLite if no DATABASE_URL (during initial deploy)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    
+    # Define MIDDLEWARE first before trying to modify it
+    MIDDLEWARE = [
+        'django.middleware.security.SecurityMiddleware',
+        'django.contrib.sessions.middleware.SessionMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'django.middleware.csrf.CsrfViewMiddleware',
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    ]
     
     # Static files configuration
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -89,3 +104,100 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
             },
         },
     }
+
+    # Required Django settings for production-only setup
+    INSTALLED_APPS = [
+        'django.contrib.admin',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'channels',
+        'core',
+        'courses',
+        'attendance',
+        'django_extensions',
+    ]
+
+    AUTH_USER_MODEL = 'core.User'
+    
+    STATIC_URL = '/static/'
+    STATICFILES_DIRS = [
+        os.path.join(BASE_DIR, 'static_dev'),
+    ]
+    
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
+    
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+    
+    LOGIN_REDIRECT_URL = '/'
+    LOGOUT_REDIRECT_URL = '/'
+    LOGIN_URL = 'login'
+    
+    ASGI_APPLICATION = 'attendance_system.asgi.application'
+    
+    from django.contrib.messages import constants as messages
+    MESSAGE_TAGS = {
+        messages.DEBUG: 'secondary',
+        messages.INFO: 'info',
+        messages.SUCCESS: 'success',
+        messages.WARNING: 'warning',
+        messages.ERROR: 'danger',
+    }
+    
+    ROOT_URLCONF = 'attendance_system.urls'
+    
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [BASE_DIR / 'templates'],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': [
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages',
+                ],
+            },
+        },
+    ]
+    
+    WSGI_APPLICATION = 'attendance_system.wsgi.application'
+    
+    AUTH_PASSWORD_VALIDATORS = [
+        {
+            'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        },
+        {
+            'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        },
+        {
+            'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        },
+        {
+            'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        },
+    ]
+    
+    LANGUAGE_CODE = 'en-us'
+    TIME_ZONE = 'Europe/Lisbon'
+    USE_I18N = True
+    USE_TZ = True
+    
+    STATIC_URL = 'static/'
+    STATICFILES_FINDERS = [
+        'django.contrib.staticfiles.finders.FileSystemFinder',
+        'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    ]
+    
+    DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+else:
+    # Fallback: If not in Railway environment, raise an error
+    raise RuntimeError(
+        "This settings file is for Railway production only. "
+        "Set RAILWAY_ENVIRONMENT=production in your environment variables."
+    )
