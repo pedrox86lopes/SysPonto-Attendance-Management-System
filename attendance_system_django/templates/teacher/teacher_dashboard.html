@@ -68,8 +68,7 @@
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{
-                        request.user.get_full_name|default:request.user.username }}!</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo, Professor {{ request.user.get_full_name|default:request.user.username }}!</h2>
                     <p class="text-gray-600">Faça a gestão das suas turmas e monitoriza a presença em tempo real.</p>
                 </div>
                 <!-- Active Session Indicator -->
@@ -114,10 +113,8 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Aulas Hoje</p>
-                        <p class="text-2xl font-bold text-warning" id="todaySessionCount">{{
-                            teacher_class_sessions_today|length }}</p>
-                        <p class="text-sm text-gray-500">{{ teacher_class_sessions_today|length }} sessões programadas
-                        </p>
+                        <p class="text-2xl font-bold text-warning" id="todaySessionCount">{% if teacher_class_sessions_today %}{{ teacher_class_sessions_today|length }}{% else %}0{% endif %}</p>
+                        <p class="text-sm text-gray-500">sessões programadas</p>
                     </div>
                     <i data-lucide="calendar" class="h-8 w-8 text-warning"></i>
                 </div>
@@ -162,11 +159,9 @@
                                 {% for session in teacher_class_sessions_today %}
                                 <option value="{{ session.id }}" data-course-name="{{ session.course.name }}"
                                     data-start-time="{{ session.start_time|time:'H:i' }}"
-                                    data-end-time="{{ session.end_time|time:'H:i' }}" {% if
-                                    active_class_session_for_display and session.id==active_class_session_for_display.id
-                                    %}selected{% endif %}>
-                                    {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{
-                                    session.end_time|time:"H:i" }}
+                                    data-end-time="{{ session.end_time|time:'H:i' }}" 
+                                    {% if active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
+                                    {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}
                                 </option>
                                 {% empty %}
                                 <option value="">Não há aulas hoje.</option>
@@ -230,7 +225,6 @@
                                 Submissões em Tempo Real
                             </h3>
                             <div class="flex items-center space-x-3">
-
                                 <div class="text-sm text-gray-500" id="lastUpdated">Nunca atualizado</div>
                             </div>
                         </div>
@@ -277,8 +271,7 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-semibold text-blue-800">{{ session.course.name }}</p>
-                                    <p class="text-sm text-blue-600">{{ session.start_time|time:"H:i" }} - {{
-                                        session.end_time|time:"H:i" }}</p>
+                                    <p class="text-sm text-blue-600">{{ session.start_time|time:"H:i" }} - {{ session.end_time|time:"H:i" }}</p>
                                 </div>
                                 <div class="text-right">
                                     <span
