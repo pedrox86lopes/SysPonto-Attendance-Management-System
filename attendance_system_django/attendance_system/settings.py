@@ -1,6 +1,5 @@
-# Railway Production Settings
-import os
 import dj_database_url
+import os
 
 # Detect Railway environment
 if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
