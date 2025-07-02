@@ -3,6 +3,7 @@ channels
 django-extensions
 gunicorn
 uvicorn
+websockets
 daphne
 dj-database-url
 whitenoise

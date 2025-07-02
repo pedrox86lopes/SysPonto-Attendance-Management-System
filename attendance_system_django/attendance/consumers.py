@@ -93,3 +93,39 @@ class ClassSessionConsumer(AsyncWebsocketConsumer):
                 **event['context']
             }
         }))
+
+
+class StudentNotificationConsumer(AsyncWebsocketConsumer):
+    """Consumer for student-specific notifications"""
+    
+    async def connect(self):
+        # Create a general student notification group
+        self.group_name = 'student_notifications'
+        
+        # Join the student notifications group
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave the student notifications group
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+
+    # Receive message from WebSocket (from client)
+    async def receive(self, text_data):
+        # Students typically don't send messages, just receive notifications
+        pass
+
+    # Handle attendance validation notifications
+    async def attendance_validated(self, event):
+        """Handle when a student's attendance is validated"""
+        await self.send(text_data=json.dumps({
+            'type': 'notification',
+            'message': event['message'],
+            'context': event.get('context', {})
+        }))
