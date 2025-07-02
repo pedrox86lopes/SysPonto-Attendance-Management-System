@@ -1,8 +1,0 @@
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-healthcheckPath = "/admin/"
-healthcheckTimeout = 100
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
