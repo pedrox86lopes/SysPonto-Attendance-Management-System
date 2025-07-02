@@ -163,8 +163,7 @@
                                 <option value="{{ session.id }}" data-course-name="{{ session.course.name }}"
                                     data-start-time="{{ session.start_time|time:'H:i' }}"
                                     data-end-time="{{ session.end_time|time:'H:i' }}" {% if
-                                    active_class_session_for_display and session.id==active_class_session_for_display.id
-                                    %}selected{% endif %}>
+                                    active_class_session_for_display and session.id == active_class_session_for_display.id %}selected{% endif %}>
                                     {{ session.course.name }} - {{ session.start_time|time:"H:i" }} - {{
                                     session.end_time|time:"H:i" }}
                                 </option>
