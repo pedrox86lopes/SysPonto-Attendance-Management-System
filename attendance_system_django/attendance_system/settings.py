@@ -66,31 +66,48 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
         'https://*.up.railway.app',
     ]
     
-    # Channel Layers for production (use Redis if available, fallback to InMemory)
+    # Channel Layers for production
     redis_url = os.environ.get('REDIS_URL')
     if redis_url:
+        print(f"✅ Using Redis for Channel Layers: {redis_url}")
         CHANNEL_LAYERS = {
             'default': {
                 'BACKEND': 'channels_redis.core.RedisChannelLayer',
                 'CONFIG': {
                     "hosts": [redis_url],
+                    "capacity": 1500,
+                    "expiry": 10,
+                    "group_expiry": 86400,
+                    "symmetric_encryption_keys": [SECRET_KEY],
                 },
             },
         }
     else:
+        print("⚠️ No Redis URL found, using InMemoryChannelLayer")
         CHANNEL_LAYERS = {
             'default': {
-                'BACKEND': 'channels.layers.InMemoryChannelLayer'
+                'BACKEND': 'channels.layers.InMemoryChannelLayer',
+                'CONFIG': {
+                    "capacity": 300,
+                    "expiry": 60,
+                }
             }
         }
     
-    # Logging configuration for Railway
+    # Enhanced logging for WebSocket debugging
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+        },
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
             },
         },
         'root': {
@@ -102,11 +119,27 @@ if 'RAILWAY_ENVIRONMENT' in os.environ or 'DATABASE_URL' in os.environ:
                 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
                 'propagate': False,
             },
+            'channels': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'daphne': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'attendance': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
         },
     }
 
-    # Required Django settings for production-only setup
+    # Required Django settings for production-only setup (ADDED DAPHNE)
     INSTALLED_APPS = [
+        'daphne', 
         'django.contrib.admin',
         'django.contrib.auth',
         'django.contrib.contenttypes',
